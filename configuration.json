@@ -1,0 +1,5 @@
+{
+  "data-path": "/data/",
+  "network-port": 6999,
+  "max-connection": 10
+}
