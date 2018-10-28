@@ -12,6 +12,12 @@ typedef struct session {
     int socket;
 } session;
 
+int port, max_connection;
+
+char *data_path;
+
+char* username, *password;
+
 void *connection_handler(void *socket_desc);
 
 void load_configuration();

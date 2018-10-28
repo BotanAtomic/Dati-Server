@@ -12,6 +12,8 @@
 
 #endif //DATI_UTILS_H
 
+
+
 char* memstrcpy(const char* in) {
     char * out;
 

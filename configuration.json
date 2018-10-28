@@ -1,5 +1,7 @@
 {
   "data-path": "/data/",
   "network-port": 6999,
-  "max-connection": 10
+  "max-connection": 10,
+  "username": "root",
+  "password" : "password"
 }

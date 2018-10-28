@@ -7,4 +7,10 @@
 
 #endif //DATI_BUFFER_H
 
-void read_string(char * buffer, int socket);
+#include <sys/socket.h>
+
+char* read_string(size_t size, int socket);
+
+__uint16_t read_ushort(int socket);
+
+unsigned char read_ubyte(int socket);

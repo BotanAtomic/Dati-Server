@@ -17,9 +17,6 @@
 #define CONFIGURATION_FILE "configuration.json"
 #define BACKLOG 20
 
-int port, max_connection;
-
-char *data;
 
 void load_configuration() {
     printf("Loading file '%s' : ", CONFIGURATION_FILE);
@@ -43,7 +40,9 @@ void load_configuration() {
         port = (int) strtol(get_json_string_val(json_object, "network-port"), NULL, 10);
         max_connection = (int) strtol(get_json_string_val(json_object, "max-connection"), NULL, 10);
 
-        data = get_json_string_val(json_object, "data-path");
+        data_path = get_json_string_val(json_object, "data-path");
+        username = get_json_string_val(json_object, "username");
+        password = get_json_string_val(json_object, "password");
 
         printf("OK\n");
         fclose(file);
