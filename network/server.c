@@ -2,17 +2,9 @@
 // Created by Botan on 26/10/18.
 //
 
-#include <string.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <pthread.h>
-#include "json-c/json.h"
-#include "../utils/utils.h"
 #include "server.h"
 #include "message_parser.h"
-#include "../shell/shell.h"
+
 
 #define CONFIGURATION_FILE "configuration.json"
 
@@ -40,6 +32,7 @@ void load_configuration() {
         max_connection = (int) strtol(get_json_value(json_object, "max-connection"), NULL, 10);
 
         data_path = get_json_value(json_object, "databases-path");
+
         username = get_json_value(json_object, "username");
         password = get_json_value(json_object, "password");
 
@@ -97,7 +90,7 @@ void *connection_handler(void *socket_desc) {
     int read_size;
     unsigned char *message[1];
 
-    session session;
+    struct session session;
 
     session.connected = 0;
     session.socket = sock;

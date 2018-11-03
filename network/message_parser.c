@@ -1,27 +1,18 @@
 //
-// Created by Botan on 27/10/18.
+// Created by Botan on 03/11/18.
 //
 
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include "stdio.h"
-#include "server.h"
 #include "message_parser.h"
-#include "buffer.h"
-#include "../shell/shell.h"
-#include "error_code.c"
 
 #define SUCCESS 1
 #define FAILED 0
 
-void (*messages[])(session *session, __uint16_t size) ={
+void (*messages[])(struct session *session, __uint16_t size) ={
         login, get_databases, create_database
 };
 
 
-void parse(unsigned char id, session *session) {
+void parse(unsigned char id, struct session *session) {
     __uint16_t size = read_ushort(session->socket);
 
     println("Reception of [message_id : %d / size : %d]", id, size);
@@ -31,7 +22,7 @@ void parse(unsigned char id, session *session) {
     }
 }
 
-void login(session *session, __uint16_t size) {
+void login(struct session *session, __uint16_t size) {
     unsigned char response[2] = {0};
 
     unsigned char user_length = read_ubyte(session->socket);
@@ -51,11 +42,40 @@ void login(session *session, __uint16_t size) {
 }
 
 
-void get_databases(session *session, __uint16_t size) {
+void get_databases(struct session *session, __uint16_t size) {
+    DIR *dir = opendir("database");
+    char *databases = "";
 
+    int count = 0;
+    if (dir != NULL) {
+
+        struct dirent *path_entries;
+        while ((path_entries = readdir(dir)) != NULL) {
+            if (path_entries->d_type == DT_DIR && strcmp(path_entries->d_name, ".") != 0 &&
+                strcmp(path_entries->d_name, "..") != 0) {
+
+                if (strlen(databases) > 0)
+                    concat_string(&databases, "@");
+
+                concat_string(&databases, path_entries->d_name);
+                count++;
+            }
+        }
+    }
+
+    closedir(dir);
+
+    write_ubyte(1, session->socket);
+    write_ushort((__uint16_t) strlen(databases), session->socket);
+    write_ushort((__uint16_t) count, session->socket);
+
+    if (strlen(databases) > 0)
+        write_string(databases, session->socket);
+
+    free(databases);
 }
 
-void create_database(session *session, __uint16_t size) {
+void create_database(struct session *session, __uint16_t size) {
     unsigned char response[2] = {2};
 
     char *database = read_string(size, session->socket);
@@ -65,14 +85,25 @@ void create_database(session *session, __uint16_t size) {
     char *path = malloc(path_size);
     snprintf(path, path_size, "%s/%s", data_path, database);
 
-    int result = mkdir(path, 0777);
+    int error_code;
+    int result;
 
-    response[1] = (unsigned char) (result == 0 ? 1 : 0);
+    char exclude[] = {' ', '@', '\0'};
+
+    if (!contains(path, exclude) && size < 256) {
+        result = mkdir(path, 0777);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+        error_code = DATABASE_ALREADY_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = DATABASE_UNAUTORIZED_NAME;
+    }
 
     free(path);
 
     send(session->socket, response, 2, 0);
 
     if (response[1] == 0)
-        write_ubyte(DATABASE_ALREADY_EXIST, session->socket);
+        write_ubyte((unsigned char) error_code, session->socket);
 }
+

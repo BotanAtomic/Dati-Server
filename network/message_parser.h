@@ -1,12 +1,29 @@
 //
-// Created by Botan on 27/10/18.
+// Created by Botan on 03/11/18.
 //
 
+#ifndef DATI_MESSAGE_HANDLER_H
+#define DATI_MESSAGE_HANDLER_H
 
-void parse(unsigned char id, session *session);
+#include "server.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include "stdio.h"
+#include "buffer.h"
+#include "../shell/shell.h"
+#include "error_code.c"
+#include "../utils/utils.h"
 
-void login(session *session, __uint16_t size);
+void parse(unsigned char id, struct session *session);
 
-void get_databases(session *session, __uint16_t size);
+void login(struct session *session, __uint16_t size);
 
-void create_database(session *session, __uint16_t size);
+void get_databases(struct session *session, __uint16_t size);
+
+void create_database(struct session *session, __uint16_t size);
+
+#endif //DATI_MESSAGE_HANDLER_H
