@@ -8,7 +8,7 @@
 #endif //DATI_SERVER_H
 
 typedef struct session {
-    char connected;
+    unsigned char connected;
     int socket;
 } session;
 

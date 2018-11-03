@@ -2,7 +2,6 @@
 // Created by Botan on 26/10/18.
 //
 
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -13,13 +12,13 @@
 #include "../utils/utils.h"
 #include "server.h"
 #include "message_parser.h"
+#include "../shell/shell.h"
 
 #define CONFIGURATION_FILE "configuration.json"
-#define BACKLOG 20
 
 
 void load_configuration() {
-    printf("Loading file '%s' : ", CONFIGURATION_FILE);
+    print("Loading file '%s' : ", CONFIGURATION_FILE);
 
     char *content = NULL;
     long int size = 0;
@@ -37,37 +36,35 @@ void load_configuration() {
         fread(content, 1, (size_t) size, file);
         json_object = json_tokener_parse(content);
 
-        port = (int) strtol(get_json_string_val(json_object, "network-port"), NULL, 10);
-        max_connection = (int) strtol(get_json_string_val(json_object, "max-connection"), NULL, 10);
+        port = (int) strtol(get_json_value(json_object, "network-port"), NULL, 10);
+        max_connection = (int) strtol(get_json_value(json_object, "max-connection"), NULL, 10);
 
-        data_path = get_json_string_val(json_object, "data-path");
-        username = get_json_string_val(json_object, "username");
-        password = get_json_string_val(json_object, "password");
+        data_path = get_json_value(json_object, "data-path");
+        username = get_json_value(json_object, "username");
+        password = get_json_value(json_object, "password");
 
-        printf("OK\n");
+        println("SUCCESS");
         fclose(file);
     } else {
-        printf("FAILED\n");
+        println("FAILED");
         exit(EXIT_FAILURE);
     }
 }
 
 void bind_server() {
-    setbuf(stdout, NULL);
-
     int socket_desc, client_sock, c;
     struct sockaddr_in server, client;
 
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
 
     if (socket_desc == -1) {
-        printf("Could not create socket");
+        print("Could not create socket");
         exit(EXIT_FAILURE);
     }
 
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(port);
+    server.sin_port = htons((uint16_t) port);
 
     int iSetOption = 1;
 
@@ -75,22 +72,22 @@ void bind_server() {
                sizeof(iSetOption));
 
     if (bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) < 0) {
-        printf("Cannot bind server on port %d", port);
+        println("Cannot bind server on port %d", port);
         return;
     }
-    printf("Server started on port %d\n", port);
+    println("Server started on port %d", port);
 
     listen(socket_desc, max_connection);
 
     c = sizeof(struct sockaddr_in);
 
-    pthread_t thread_id;
+    pthread_t thread;
 
     while ((client_sock = accept(socket_desc, (struct sockaddr *) &client, (socklen_t *) &c))) {
-        puts("Connection accepted \n");
+        println("Connection accepted");
 
-        pthread_create(&thread_id, NULL, connection_handler, (void *) &client_sock);
-        pthread_join(thread_id, NULL);
+        pthread_create(&thread, NULL, connection_handler, (void *) &client_sock);
+        pthread_join(thread, NULL);
     }
 
 }
@@ -104,6 +101,7 @@ void *connection_handler(void *socket_desc) {
 
     session.connected = 0;
     session.socket = sock;
+
     while ((read_size = (int) recv(sock, message, 1, 0)) > 0) {
         parse((unsigned char) message[0], &session);
     }

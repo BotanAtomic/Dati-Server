@@ -24,6 +24,6 @@ char* memstrcpy(const char* in) {
 }
 
 
-char* get_json_string_val(json_object* json_obj, const char* key) {
+char* get_json_value(json_object *json_obj, const char *key) {
     return memstrcpy(json_object_get_string(json_object_object_get(json_obj, key)));
 }
