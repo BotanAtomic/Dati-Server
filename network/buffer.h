@@ -9,6 +9,12 @@
 
 #include <sys/socket.h>
 
+void write_ubyte(unsigned char byte, int socket);
+
+void write_ushort(__uint16_t u16, int socket);
+
+void write_string(char *str, int socket);
+
 char* read_string(size_t size, int socket);
 
 __uint16_t read_ushort(int socket);

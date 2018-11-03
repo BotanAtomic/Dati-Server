@@ -39,7 +39,7 @@ void load_configuration() {
         port = (int) strtol(get_json_value(json_object, "network-port"), NULL, 10);
         max_connection = (int) strtol(get_json_value(json_object, "max-connection"), NULL, 10);
 
-        data_path = get_json_value(json_object, "data-path");
+        data_path = get_json_value(json_object, "databases-path");
         username = get_json_value(json_object, "username");
         password = get_json_value(json_object, "password");
 
@@ -66,10 +66,10 @@ void bind_server() {
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons((uint16_t) port);
 
-    int iSetOption = 1;
+    int set = 1;
 
-    setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (char *) &iSetOption,
-               sizeof(iSetOption));
+    setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, (char *) &set,
+               sizeof(set));
 
     if (bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) < 0) {
         println("Cannot bind server on port %d", port);

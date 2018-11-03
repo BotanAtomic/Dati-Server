@@ -7,6 +7,23 @@
 #include <stdlib.h>
 #include "buffer.h"
 
+void write_ubyte(unsigned char byte, int socket) {
+    unsigned char buffer[1];
+    buffer[0] = byte;
+    send(socket, buffer, 1, 0);
+}
+
+void write_ushort(__uint16_t u16, int socket) {
+    unsigned char buffer[2];
+    buffer[0] = (unsigned char) (u16 & 0xFF);
+    buffer[1] = (unsigned char) ((u16 >> 8) & 0xFF);
+    send(socket, buffer, 2, 0);
+}
+
+void write_string(char *str, int socket) {
+    send(socket, str, strlen(str), 0);
+}
+
 char *read_string(size_t size, int socket) {
     char *buffer = malloc(size);
     recv(socket, buffer, size, 0);

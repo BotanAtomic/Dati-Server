@@ -1,5 +1,5 @@
 {
-  "data-path": "/data/",
+  "databases-path": "database",
   "network-port": 6999,
   "max-connection": 10,
   "username": "root",
