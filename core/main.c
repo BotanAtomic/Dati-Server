@@ -2,7 +2,7 @@
 #include "../network/server.h"
 #include "../shell/shell.h"
 
-#define VERSION "0.0.1"
+#define VERSION "0.0.5"
 
 
 int main() {

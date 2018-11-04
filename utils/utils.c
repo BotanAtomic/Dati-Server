@@ -78,9 +78,8 @@ int remove_directory(char *path) {
             char *buf;
             size_t len;
 
-            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
                 continue;
-            }
 
             len = path_len + strlen(p->d_name) + 2;
             buf = malloc(len);
@@ -177,4 +176,17 @@ unsigned char valid_name(char *name) {
     if (strlen(name) > 255 || contains(name, exclude))
         return 0;
     return 1;
+}
+
+void create_index(char *path) {
+    FILE *fPtr;
+    fPtr = fopen(path, "w");
+
+    if (fPtr == NULL) {
+        return;
+    }
+
+    fputs("0", fPtr);
+
+    fclose(fPtr);
 }

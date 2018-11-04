@@ -70,8 +70,7 @@ void create_database(struct session *session, __uint16_t size) {
 
     char *path = build_path(2, data_path, database);
 
-    int error_code;
-    int result;
+    int result, error_code = 0;
 
     if (valid_name(path)) {
         result = mkdir(path, 0777);
@@ -98,8 +97,7 @@ void remove_database(struct session *session, __uint16_t size) {
 
     char *path = build_path(2, data_path, database);
 
-    int error_code;
-    int result;
+    int result, error_code = 0;
 
     if (valid_name(path)) {
         result = remove_directory(path);
@@ -130,8 +128,7 @@ void rename_database(struct session *session, __uint16_t size) {
 
     println("Rename database '%s' to '%s'", database, new_name);
 
-    int error_code;
-    int result;
+    int result, error_code = 0;
 
     if (valid_name(path)) {
         result = rename(path, new_path);
@@ -179,19 +176,22 @@ void create_table(struct session *session, __uint16_t size) {
 
     char *path = build_path(3, data_path, database, table);
 
-    int error_code = 0;
-    int result;
+    int result, error_code = 0;
 
     if (valid_name(path)) {
         result = mkdir(path, 0777);
         response[1] = (unsigned char) (result == 0 ? 1 : 0);
-
+        create_index(build_path(4, data_path, database, table, "index"));
         if (response[1] == 0)
             error_code = path_exists(path) ? TABLE_ALREADY_EXIST : DATABASE_NOT_EXIST;
     } else {
         response[1] = 0;
         error_code = UNAUTHORIZED_NAME;
     }
+
+    free(database);
+    free(table);
+    free(path);
 
     send(session->socket, response, 2, 0);
 
@@ -200,9 +200,61 @@ void create_table(struct session *session, __uint16_t size) {
 }
 
 void remove_table(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {7};
 
+    char *database = read_string(size, session->socket);
+    char *table = read_string(read_ushort(session->socket), session->socket);
+
+    char *path = build_path(3, data_path, database, table);
+
+    int result, error_code = 0;
+
+    if (valid_name(path)) {
+        result = remove_directory(path);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+        error_code = path_exists(build_path(2, data_path, database)) ? TABLE_NOT_EXIST : DATABASE_NOT_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = UNAUTHORIZED_NAME;
+    }
+
+    free(database);
+    free(table);
+    free(path);
+
+    send(session->socket, response, 2, 0);
+
+    if (response[1] == 0)
+        write_ubyte((unsigned char) error_code, session->socket);
 }
 
 void rename_table(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {8};
 
+    char *database = read_string(size, session->socket);
+    char *table = read_string(read_ushort(session->socket), session->socket);
+    char *new_table_name = read_string(read_ushort(session->socket), session->socket);
+
+    char *path = build_path(3, data_path, database, table);
+    char *new_path = build_path(3, data_path, database, new_table_name);
+
+    int result, error_code = 0;
+
+    if (valid_name(path)) {
+        result = rename(path, new_path);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+        error_code = path_exists(path) ? TABLE_NOT_EXIST : DATABASE_NOT_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = UNAUTHORIZED_NAME;
+    }
+
+    free(database);
+    free(table);
+    free(path);
+
+    send(session->socket, response, 2, 0);
+
+    if (response[1] == 0)
+        write_ubyte((unsigned char) error_code, session->socket);
 }

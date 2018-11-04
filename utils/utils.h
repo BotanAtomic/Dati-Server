@@ -38,4 +38,6 @@ char *build_path(unsigned char count, char *args, ...);
 
 single_container list_folders(char *path);
 
+void create_index(char *path);
+
 #endif //DATI_UTILS_H
