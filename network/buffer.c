@@ -25,8 +25,9 @@ void write_string(char *str, int socket) {
 }
 
 char *read_string(size_t size, int socket) {
-    char *buffer = malloc(size);
+    char *buffer = malloc(size + 1);
     recv(socket, buffer, size, 0);
+    buffer[size] = '\0';
     return buffer;
 }
 

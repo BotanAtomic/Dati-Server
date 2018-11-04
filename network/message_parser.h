@@ -10,8 +10,6 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include "stdio.h"
 #include "buffer.h"
 #include "../shell/shell.h"
@@ -25,5 +23,17 @@ void login(struct session *session, __uint16_t size);
 void get_databases(struct session *session, __uint16_t size);
 
 void create_database(struct session *session, __uint16_t size);
+
+void remove_database(struct session *session, __uint16_t size);
+
+void rename_database(struct session *session, __uint16_t size);
+
+void get_table(struct session *session, __uint16_t size);
+
+void create_table(struct session *session, __uint16_t size);
+
+void remove_table(struct session *session, __uint16_t size);
+
+void rename_table(struct session *session, __uint16_t size);
 
 #endif //DATI_MESSAGE_HANDLER_H

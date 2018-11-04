@@ -7,8 +7,11 @@
 #define SUCCESS 1
 #define FAILED 0
 
+
 void (*messages[])(struct session *session, __uint16_t size) ={
-        login, get_databases, create_database
+        login,
+        get_databases, create_database, remove_database, rename_database,
+        get_table, create_table, remove_table, rename_table
 };
 
 
@@ -38,41 +41,26 @@ void login(struct session *session, __uint16_t size) {
         session->connected = 0;
     }
 
+    free(buffer);
+
     send(session->socket, response, 2, 0);
 }
 
 
 void get_databases(struct session *session, __uint16_t size) {
-    DIR *dir = opendir("database");
-    char *databases = "";
-
-    int count = 0;
-    if (dir != NULL) {
-
-        struct dirent *path_entries;
-        while ((path_entries = readdir(dir)) != NULL) {
-            if (path_entries->d_type == DT_DIR && strcmp(path_entries->d_name, ".") != 0 &&
-                strcmp(path_entries->d_name, "..") != 0) {
-
-                if (strlen(databases) > 0)
-                    concat_string(&databases, "@");
-
-                concat_string(&databases, path_entries->d_name);
-                count++;
-            }
-        }
-    }
-
-    closedir(dir);
+    single_container container = list_folders(data_path);
 
     write_ubyte(1, session->socket);
-    write_ushort((__uint16_t) strlen(databases), session->socket);
-    write_ushort((__uint16_t) count, session->socket);
+    write_ushort((__uint16_t) strlen(container.elements), session->socket);
+    write_ushort((__uint16_t) container.count, session->socket);
 
-    if (strlen(databases) > 0)
-        write_string(databases, session->socket);
+    if (container.count > 0)
+        write_string(container.elements, session->socket);
 
-    free(databases);
+    println("Send database '%s'", container.elements);
+
+    if (strlen(container.elements) > 0)
+        free(container.elements);
 }
 
 void create_database(struct session *session, __uint16_t size) {
@@ -80,26 +68,22 @@ void create_database(struct session *session, __uint16_t size) {
 
     char *database = read_string(size, session->socket);
 
-    __uint16_t path_size = (__uint16_t) (strlen(data_path) + strlen(database) + 2);
-
-    char *path = malloc(path_size);
-    snprintf(path, path_size, "%s/%s", data_path, database);
+    char *path = build_path(2, data_path, database);
 
     int error_code;
     int result;
 
-    char exclude[] = {' ', '@', '\0'};
-
-    if (!contains(path, exclude) && size < 256) {
+    if (valid_name(path)) {
         result = mkdir(path, 0777);
         response[1] = (unsigned char) (result == 0 ? 1 : 0);
         error_code = DATABASE_ALREADY_EXIST;
     } else {
         response[1] = 0;
-        error_code = DATABASE_UNAUTORIZED_NAME;
+        error_code = UNAUTHORIZED_NAME;
     }
 
     free(path);
+    free(database);
 
     send(session->socket, response, 2, 0);
 
@@ -107,3 +91,118 @@ void create_database(struct session *session, __uint16_t size) {
         write_ubyte((unsigned char) error_code, session->socket);
 }
 
+void remove_database(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {3};
+
+    char *database = read_string(size, session->socket);
+
+    char *path = build_path(2, data_path, database);
+
+    int error_code;
+    int result;
+
+    if (valid_name(path)) {
+        result = remove_directory(path);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+        error_code = DATABASE_NOT_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = UNAUTHORIZED_NAME;
+    }
+
+    free(path);
+    free(database);
+
+    send(session->socket, response, 2, 0);
+
+    if (response[1] == 0)
+        write_ubyte((unsigned char) error_code, session->socket);
+}
+
+void rename_database(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {4};
+
+    char *database = read_string(size, session->socket);
+    char *new_name = read_string(read_ushort(session->socket), session->socket);
+
+    char *path = build_path(2, data_path, database);
+    char *new_path = build_path(2, data_path, new_name);
+
+    println("Rename database '%s' to '%s'", database, new_name);
+
+    int error_code;
+    int result;
+
+    if (valid_name(path)) {
+        result = rename(path, new_path);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+        error_code = DATABASE_NOT_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = UNAUTHORIZED_NAME;
+    }
+
+    free(new_name);
+    free(new_path);
+    free(path);
+    free(database);
+
+    send(session->socket, response, 2, 0);
+
+    if (response[1] == 0)
+        write_ubyte((unsigned char) error_code, session->socket);
+}
+
+void get_table(struct session *session, __uint16_t size) {
+    char *database = read_string(size, session->socket);
+
+    single_container container = list_folders(build_path(2, data_path, database));
+
+    write_ubyte(5, session->socket);
+    write_ushort((__uint16_t) strlen(container.elements), session->socket);
+    write_ushort((__uint16_t) container.count, session->socket);
+
+    if (strlen(container.elements) > 0)
+        write_string(container.elements, session->socket);
+
+    println("Send tables of database[%s] :  '%s'", database, container.elements);
+
+    if (strlen(container.elements) > 0)
+        free(container.elements);
+}
+
+void create_table(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {6};
+
+    char *database = read_string(size, session->socket);
+    char *table = read_string(read_ushort(session->socket), session->socket);
+
+    char *path = build_path(3, data_path, database, table);
+
+    int error_code = 0;
+    int result;
+
+    if (valid_name(path)) {
+        result = mkdir(path, 0777);
+        response[1] = (unsigned char) (result == 0 ? 1 : 0);
+
+        if (response[1] == 0)
+            error_code = path_exists(path) ? TABLE_ALREADY_EXIST : DATABASE_NOT_EXIST;
+    } else {
+        response[1] = 0;
+        error_code = UNAUTHORIZED_NAME;
+    }
+
+    send(session->socket, response, 2, 0);
+
+    if (response[1] == 0)
+        write_ubyte((unsigned char) error_code, session->socket);
+}
+
+void remove_table(struct session *session, __uint16_t size) {
+
+}
+
+void rename_table(struct session *session, __uint16_t size) {
+
+}

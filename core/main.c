@@ -21,6 +21,5 @@ int main() {
 
     load_configuration();
     bind_server();
-
     return 0;
 }
