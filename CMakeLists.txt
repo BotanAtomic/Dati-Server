@@ -4,9 +4,11 @@ project(Dati C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_FLAGS "-lpthread")
 
-link_directories(${PROJECT_SOURCE_DIR}/json-c/.libs)
+link_directories(${PROJECT_SOURCE_DIR}/lib/json-c/.libs)
 
-add_executable(Dati core/main.c network/server.c network/server.h utils/utils.c utils/utils.h network/buffer.c network/buffer.h
-        shell/shell.c shell/shell.h network/error_code.c network/message_parser.c network/message_parser.h)
+include_directories(include lib)
+
+add_executable(Dati src/core/main.c src/network/server.c include/server.h src/utils/utils.c include/utils.h src/network/buffer.c include/buffer.h
+        src/shell/shell.c include/shell.h include/error_code.h src/network/message_parser.c include/message_parser.h)
 
 target_link_libraries(Dati json-c)

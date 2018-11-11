@@ -12,9 +12,9 @@
 #include <string.h>
 #include "stdio.h"
 #include "buffer.h"
-#include "../shell/shell.h"
-#include "error_code.c"
-#include "../utils/utils.h"
+#include "shell.h"
+#include "error_code.h"
+#include "utils.h"
 
 void parse(unsigned char id, struct session *session);
 
@@ -35,5 +35,8 @@ void create_table(struct session *session, __uint16_t size);
 void remove_table(struct session *session, __uint16_t size);
 
 void rename_table(struct session *session, __uint16_t size);
+
+void insert_value(struct session *session, __uint16_t size);
+
 
 #endif //DATI_MESSAGE_HANDLER_H

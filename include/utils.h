@@ -9,11 +9,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <json-c/json.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/unistd.h>
 #include <stdarg.h>
+
+#include "../lib/json-c/json.h"
 
 typedef struct single_container {
     char *elements;

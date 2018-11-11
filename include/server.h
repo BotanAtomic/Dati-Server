@@ -12,9 +12,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "json-c/json.h"
-#include "../shell/shell.h"
-#include "../utils/utils.h"
+#include "shell.h"
+#include "utils.h"
 
 struct session {
     unsigned char connected;

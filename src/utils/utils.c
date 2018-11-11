@@ -186,7 +186,7 @@ void create_index(char *path) {
         return;
     }
 
-    fputs("0", fPtr);
+    fputs("1", fPtr);
 
     fclose(fPtr);
 }

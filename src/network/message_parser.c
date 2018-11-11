@@ -11,7 +11,8 @@
 void (*messages[])(struct session *session, __uint16_t size) ={
         login,
         get_databases, create_database, remove_database, rename_database,
-        get_table, create_table, remove_table, rename_table
+        get_table, create_table, remove_table, rename_table,
+        insert_value
 };
 
 
@@ -252,9 +253,28 @@ void rename_table(struct session *session, __uint16_t size) {
     free(database);
     free(table);
     free(path);
+    free(new_path);
+    free(new_table_name);
 
     send(session->socket, response, 2, 0);
 
     if (response[1] == 0)
         write_ubyte((unsigned char) error_code, session->socket);
+}
+
+void insert_value(struct session *session, __uint16_t size) {
+    unsigned char response[2] = {9};
+
+    char *database = read_string(size, session->socket);
+    char *table = read_string(read_ushort(session->socket), session->socket);
+
+    uint16_t data_size = read_ushort(session->socket);
+
+    for (int i = 0; i < data_size; i++) {
+        char *key = read_string(read_ushort(session->socket), session->socket);
+        unsigned char type = read_ubyte(session->socket);
+
+
+    }
+
 }
