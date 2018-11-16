@@ -14,12 +14,9 @@
 #include <sys/unistd.h>
 #include <stdarg.h>
 
-#include "../lib/json-c/json.h"
+#include "json-c/json.h"
+#include "container.h"
 
-typedef struct single_container {
-    char *elements;
-    uint16_t count;
-} single_container;
 
 void concat_string(char **str, const char *str2);
 
@@ -37,8 +34,10 @@ unsigned char valid_name(char *name);
 
 char *build_path(unsigned char count, char *args, ...);
 
-single_container list_folders(char *path);
+container list_folders(char *path);
 
-void create_index(char *path);
+void write_index(unsigned long value, char* path);
+
+unsigned long next_index(char *path);
 
 #endif //DATI_UTILS_H

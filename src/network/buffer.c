@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <buffer.h>
+
 #include "buffer.h"
 
 void write_ubyte(unsigned char byte, int socket) {
@@ -44,6 +46,19 @@ __uint16_t read_ushort(int socket) {
     return (__uint16_t) buffer[0] | ((__uint16_t) buffer[1] << 8);
 }
 
+__uint32_t read_uint(int socket) {
+    unsigned char buffer[4];
+    recv(socket, buffer, 4, 0);
+
+    __uint32_t value = 0;
+
+    for (int i = 0; i < 4; i++)
+        value += (buffer[i] << (8 * i));
+
+    return value;
+}
+
+
 unsigned char read_ubyte(int socket) {
     unsigned char buffer;
     recv(socket, &buffer, 1, 0);
@@ -58,6 +73,46 @@ __uint64_t read_ulong(int socket) {
 
     for (int i = 0; i < 8; i++)
         value += (buffer[i] << (8 * i));
+
+    return value;
+}
+
+int16_t get_short(const char *buffer) {
+    return (int16_t) (((buffer[0] << 8) & 0xff00) | (buffer[1] & 0xff));
+}
+
+__uint16_t get_ushort(const char *buffer) {
+    return (__uint16_t) buffer[0] | ((__uint16_t) buffer[1] << 8);
+}
+
+
+__uint32_t get_uint(const char *buffer) {
+    __uint32_t value = 0;
+
+    for (int i = 0; i < 4; i++)
+        value += ((unsigned char) buffer[i]) << (8 * i);
+
+    return value;
+}
+
+int32_t get_int(const char *buffer) {
+    return (buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
+}
+
+__uint64_t get_ulong(const char *buffer) {
+    __uint64_t value = 0;
+
+    for (int i = 0; i < 8; i++)
+        value += (buffer[i] & 0xffL) << (8 * i);
+
+    return value;
+}
+
+int64_t get_long(const char *buffer) {
+    int64_t value = 0;
+
+    for (int i = 0; i < 8; i++)
+        value += (buffer[i] & 0xffL) << (8 * i);
 
     return value;
 }

@@ -123,7 +123,7 @@ unsigned char path_exists(char *path) {
     }
 }
 
-single_container list_folders(char *path) {
+container list_folders(char *path) {
     DIR *dir = opendir(path);
     char *elements = "";
 
@@ -146,8 +146,8 @@ single_container list_folders(char *path) {
 
     closedir(dir);
 
-    single_container container;
-    container.count = count;
+    container container;
+    container.length = count;
     container.elements = elements;
 
     return container;
@@ -178,15 +178,39 @@ unsigned char valid_name(char *name) {
     return 1;
 }
 
-void create_index(char *path) {
-    FILE *fPtr;
-    fPtr = fopen(path, "w");
+void write_index(unsigned long value, char *path) {
+    printf("Write index %lu\n", value);
 
-    if (fPtr == NULL) {
+    FILE *file_ptr;
+    file_ptr = fopen(path, "wb");
+
+    if (file_ptr == NULL) {
         return;
     }
 
-    fputs("1", fPtr);
+    fprintf(file_ptr, "%lu", value);
 
-    fclose(fPtr);
+    fclose(file_ptr);
 }
+
+
+unsigned long next_index(char *path) {
+    FILE *file_ptr;
+    file_ptr = fopen(path, "r");
+
+    if (file_ptr == NULL) {
+        return 0;
+    }
+
+    unsigned long index = 0;
+
+    fscanf(file_ptr, "%lu", &index);
+
+    fclose(file_ptr);
+
+    write_index(++index, path);
+
+    return index;
+}
+
+
