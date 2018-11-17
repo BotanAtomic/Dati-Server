@@ -16,6 +16,7 @@
 
 #include "json-c/json.h"
 #include "container.h"
+#include "list.h"
 
 
 void concat_string(char **str, const char *str2);
@@ -35,6 +36,8 @@ unsigned char valid_name(char *name);
 char *build_path(unsigned char count, char *args, ...);
 
 container list_folders(char *path);
+
+list * get_folders(char *path);
 
 void write_index(unsigned long value, char* path);
 

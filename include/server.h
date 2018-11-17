@@ -15,10 +15,11 @@
 #include "shell.h"
 #include "utils.h"
 
-struct session {
+typedef struct session {
     unsigned char connected;
     int socket;
-};
+    int id;
+} session;
 
 int port, max_connection;
 

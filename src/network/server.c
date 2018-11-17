@@ -8,8 +8,10 @@
 
 #define CONFIGURATION_FILE "configuration.json"
 
+int client_identity = 0;
 
 void load_configuration() {
+    set_color(BLUE);
     print("Loading file '%s' : ", CONFIGURATION_FILE);
 
     char *content = NULL;
@@ -36,12 +38,15 @@ void load_configuration() {
         username = get_json_value(json_object, "username");
         password = get_json_value(json_object, "password");
 
+        set_color(BLUE);
         println("SUCCESS");
         fclose(file);
     } else {
+        set_color(RED);
         println("FAILED");
         exit(EXIT_FAILURE);
     }
+
 }
 
 void bind_server() {
@@ -51,6 +56,7 @@ void bind_server() {
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
 
     if (socket_desc == -1) {
+        set_color(RED);
         print("Could not create socket");
         exit(EXIT_FAILURE);
     }
@@ -65,10 +71,13 @@ void bind_server() {
                sizeof(set));
 
     if (bind(socket_desc, (struct sockaddr *) &server, sizeof(server)) < 0) {
+        set_color(RED);
         println("Cannot bind server on port %d", port);
         return;
     }
-    println("Server started on port %d", port);
+
+    set_color(GREEN);
+    println("Server started on port %d\n", port);
 
     listen(socket_desc, max_connection);
 
@@ -77,8 +86,6 @@ void bind_server() {
     pthread_t thread;
 
     while ((client_sock = accept(socket_desc, (struct sockaddr *) &client, (socklen_t *) &c))) {
-        println("Connection accepted");
-
         pthread_create(&thread, NULL, connection_handler, (void *) &client_sock);
         pthread_join(thread, NULL);
     }
@@ -86,24 +93,31 @@ void bind_server() {
 }
 
 void *connection_handler(void *socket_desc) {
+    session session;
+
+    session.id = client_identity++;
+
+    set_color(MAGENTA);
+    println("Session[%d] : connection accepted", session.id);
+
     int sock = *(int *) socket_desc;
     int read_size;
-    unsigned char *message[1];
+    unsigned char message[1];
 
-    struct session session;
 
     session.connected = 0;
     session.socket = sock;
 
     while ((read_size = (int) recv(sock, message, 1, 0)) > 0) {
-        parse((unsigned char) message[0], &session);
+        parse(message[0], &session);
     }
 
     if (read_size == 0) {
-        puts("Client disconnected \n");
-        fflush(stdout);
+        set_color(MAGENTA);
+        println("Session[%d] : disconnected\n", session.id);
     } else if (read_size == -1) {
-        perror("Cannot read message \n");
+        set_color(MAGENTA);
+        println("Session[%d] : connection closed (cannot read message)\n", session.id);
     }
 
     return 0;

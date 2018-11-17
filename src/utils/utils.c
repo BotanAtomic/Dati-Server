@@ -52,7 +52,7 @@ char *get_json_value(json_object *json_obj, const char *key) {
     return memstrcpy(json_object_get_string(json_object_object_get(json_obj, key)));
 }
 
-unsigned char contains(char *str, char c[]) {
+unsigned char contains(char *str, char *c) {
     for (int i = 0; i < strlen(str); i++) {
         for (int y = 0; y < sizeof(c); y++) {
             if (str[i] == c[y])
@@ -153,6 +153,27 @@ container list_folders(char *path) {
     return container;
 }
 
+list *get_folders(char *path) {
+    list *folders = list_create();
+
+    DIR *dir = opendir(path);
+
+    if (dir != NULL) {
+
+        struct dirent *path_entries;
+        while ((path_entries = readdir(dir)) != NULL) {
+            if (path_entries->d_type == DT_DIR && strcmp(path_entries->d_name, ".") != 0 &&
+                strcmp(path_entries->d_name, "..") != 0) {
+                list_insert(folders, path_entries->d_name);
+            }
+        }
+    }
+
+    closedir(dir);
+
+    return folders;
+}
+
 char *build_path(unsigned char count, char *args, ...) {
     char *path = NULL;
 
@@ -179,14 +200,11 @@ unsigned char valid_name(char *name) {
 }
 
 void write_index(unsigned long value, char *path) {
-    printf("Write index %lu\n", value);
-
     FILE *file_ptr;
     file_ptr = fopen(path, "wb");
 
-    if (file_ptr == NULL) {
+    if (file_ptr == NULL)
         return;
-    }
 
     fprintf(file_ptr, "%lu", value);
 
@@ -208,9 +226,9 @@ unsigned long next_index(char *path) {
 
     fclose(file_ptr);
 
-    write_index(++index, path);
-
     return index;
 }
+
+
 
 

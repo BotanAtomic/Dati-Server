@@ -7,7 +7,7 @@
 
 #include <sys/socket.h>
 
-static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 8, /* string */ 0};
+static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 0, 0, 0};
 
 void write_ubyte(unsigned char byte, int socket);
 

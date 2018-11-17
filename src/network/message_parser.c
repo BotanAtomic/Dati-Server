@@ -2,10 +2,8 @@
 // Created by Botan on 03/11/18.
 //
 
-#include "container.h"
 #include "variable.h"
 #include "message_parser.h"
-#include "decimal.h"
 
 #define SUCCESS 1
 #define FAILED 0
@@ -282,16 +280,23 @@ void insert_value(struct session *session, __uint16_t size) {
         char *key = read_string(read_ushort(session->socket), session->socket);
         unsigned char type = read_ubyte(session->socket);
 
+
         uint32_t data_length = PRIMITIVE_SIZE[type];
 
-        if (type == STRING)
+        if (data_length == 0)
             data_length = read_uint(session->socket);
 
         char *data = malloc(data_length);
 
         recv(session->socket, data, data_length, 0);
 
-        printf("Size :%d/%d | Key %s/ Type %d", (int) strlen(data),PRIMITIVE_SIZE[type], key, type);
+
+        if(strcmp("_id", key) == 0) { //reserved key
+            continue;
+        }
+
+
+        printf("Key %s/ Type %d", key, type);
 
         switch (type) {
             case CHAR:
@@ -326,13 +331,18 @@ void insert_value(struct session *session, __uint16_t size) {
                 printf(" / Value :%lu \n", get_ulong(data));
                 break;
 
-            case FLOAT:
-                printf(" / Value :%lf|%s! \n", read_float(data), data);
+            case FLOAT: {
+                float float_value = strtof(data, NULL);
+                printf(" / Value :%f|%s$ \n", float_value, data);
                 break;
+            }
 
-            case DOUBLE:
-                printf(" / Value :%lf|%s! \n", read_double(data), data);
+            case DOUBLE: {
+                printf("Receive double : %s", data);
+                double double_value = strtod(data, NULL);
+                printf(" / Value :%lf|%s$ \n", double_value, data);
                 break;
+            }
 
             case STRING:
                 printf(" / Value :%s \n", data);
