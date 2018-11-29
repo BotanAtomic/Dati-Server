@@ -15,27 +15,17 @@
 
 static char exclude[] = {' ', '@', '\0'};
 
-void concat_string(char **str, const char *str2) {
-    char *tmp = NULL;
+char *concat_string(char *str, char *str2) {
+    if (str == NULL)
+        str = "";
+    else if (str2 == NULL)
+        str2 = "";
 
-    if (*str != NULL && str2 == NULL) {
-        free(*str);
-        *str = NULL;
-        return;
-    }
+    char *string = malloc(strlen(str) + strlen(str2) + 2);
+    strcpy(string, str);
+    strcpy(string + strlen(str), str2);
 
-    if (*str == NULL) {
-        *str = calloc(strlen(str2) + 1, sizeof(char));
-        memcpy(*str, str2, strlen(str2));
-    } else {
-        tmp = calloc(strlen(*str) + 1, sizeof(char));
-        memcpy(tmp, *str, strlen(*str));
-        *str = calloc(strlen(*str) + strlen(str2) + 1, sizeof(char));
-        memcpy(*str, tmp, strlen(tmp));
-        memcpy(*str + strlen(*str), str2, strlen(str2));
-        free(tmp);
-    }
-
+    return string;
 }
 
 char *memstrcpy(const char *in) {
@@ -87,7 +77,7 @@ int remove_directory(char *path) {
             if (buf) {
                 struct stat statbuf;
 
-                buf = build_path(2, path, p->d_name);
+                buf = build_path(path, p->d_name, 0);
 
                 if (!stat(buf, &statbuf)) {
                     if (S_ISDIR(statbuf.st_mode)) {
@@ -136,9 +126,9 @@ container list_folders(char *path) {
                 strcmp(path_entries->d_name, "..") != 0) {
 
                 if (strlen(elements) > 0)
-                    concat_string(&elements, "@");
+                    elements = concat_string(elements, "@");
 
-                concat_string(&elements, path_entries->d_name);
+                elements = concat_string(elements, path_entries->d_name);
                 count++;
             }
         }
@@ -174,22 +164,33 @@ list *get_folders(char *path) {
     return folders;
 }
 
-char *build_path(unsigned char count, char *args, ...) {
-    char *path = NULL;
+/**
+ * Must end with 0 !
+ * @param args
+ * @param ...
+ * @return
+ */
+
+char *build_path(char *args, ...) {
+    char *path = "";
 
     va_list ap;
     va_start(ap, args);
 
-    concat_string(&path, args);
-    concat_string(&path, FILE_SEPARATOR);
+    path = concat_string(path, args);
+    path = concat_string(path, FILE_SEPARATOR);
 
-    for (int i = 0; i < (count - 1); i++) {
+    char *tmp = args;
+    int i = 0;
+    while (tmp) {
         if (i > 0)
-            concat_string(&path, FILE_SEPARATOR);
-        concat_string(&path, va_arg(ap, char*));
+            path = concat_string(path, FILE_SEPARATOR);
+        path = concat_string(path, tmp = va_arg(ap, char*));
+        i++;
     }
 
     va_end(ap);
+
     return path;
 }
 
@@ -201,7 +202,7 @@ unsigned char valid_name(char *name) {
 
 void write_index(unsigned long value, char *path) {
     FILE *file_ptr;
-    file_ptr = fopen(path, "wb");
+    file_ptr = fopen(concat_string(path, "index"), "wb");
 
     if (file_ptr == NULL)
         return;
@@ -212,9 +213,9 @@ void write_index(unsigned long value, char *path) {
 }
 
 
-unsigned long next_index(char *path) {
+unsigned long read_index(char *path) {
     FILE *file_ptr;
-    file_ptr = fopen(path, "r");
+    file_ptr = fopen(concat_string(path, "index"), "r");
 
     if (file_ptr == NULL) {
         return 0;
@@ -227,6 +228,18 @@ unsigned long next_index(char *path) {
     fclose(file_ptr);
 
     return index;
+}
+
+unsigned hash(char *data) {
+    uint32_t a = 1, b = 0;
+    size_t index;
+
+    for (index = 0; index < strlen(data); ++index) {
+        a = (a + data[index]) % 65521;
+        b = (b + a) % 65521;
+    }
+
+    return (b << 16) | a;
 }
 
 

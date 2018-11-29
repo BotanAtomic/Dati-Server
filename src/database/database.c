@@ -3,45 +3,66 @@
 //
 
 #include <malloc.h>
+#include <database.h>
+
 #include "database.h"
 #include "utils.h"
 #include "server.h"
 #include "shell.h"
-
-static list *global_databases;
+#include "comparator.h"
 
 void load_databases() {
     global_databases = list_create();
     global_databases->length = 0;
+    global_databases->comparator = compare_database;
 
-    list *database_folder = get_folders(build_path(1, data_path));
-    foreach(database_folder, load_database);
+
+    list *database_folder = get_folders(build_path(data_path, 0));
+    foreach(database_folder, (void *) load_database);
     list_free(database_folder);
+
+    foreach(global_databases, (void *) load_tables);
 }
 
-void load_database(void *database_name) {
+void load_database(char *database_name) {
     database *database = malloc(sizeof(database));
-    database->name = (char*) database_name;
+    database->name = memstrcpy(database_name);
+    database->tables = list_create();
+    database->tables->comparator = compare_table;
+
 
     list_insert(global_databases, database);
-    load_tables(*database);
 }
 
-void load_tables(database database) {
-    println("Load tables of %s", build_path(2, data_path, database.name));
+void load_tables(database *database) {
+    print("Loading {%s} [", database->name);
 
-    list *tables_folder = get_folders(build_path(2, data_path, database.name));
+    list *tables_folder = get_folders(build_path(data_path, database->name, 0));
 
     element *element = tables_folder->element;
 
     while (element) {
-        println("Table : %s", element->value);
+        load_table(database, element->value);
         element = element->next;
     }
+
+    print("]\n");
 
 }
 
 void load_table(database *database, char *table_name) {
+    table *table = malloc(sizeof(table));
+    table->name = memstrcpy(table_name);
+    table->index = read_index(build_path(data_path, database->name, table_name, 0));
+
+    if (table->index > 0) {
+        list_insert(database->tables, table);
+        print("%s:%d, ", table_name, table->index);
+    } else {
+        set_color(RED);
+        println("\nCannot load table [%s] : missing index", table_name);
+        exit(EXIT_FAILURE);
+    }
 
 }
 
@@ -49,17 +70,33 @@ void load_values(table *table) {
 
 }
 
-database *get_database(char *name) {
-    element *element = global_databases->element;
 
+table *find_table(char *database_name, char *table_name) {
+    database *database = list_search(global_databases, database_name);
 
-    while (element) {
-        if (strcmp(((database *) element->value)->name, name) == 0)
-            return element->value;
-
-        element = element->next;
-    }
+    if (database)
+        return list_search(database->tables, table_name);
 
     return NULL;
+}
+
+unsigned char insert_data(char *database_name, char *table_name, list *nodes) {
+    table *table = find_table(database_name, table_name);
+
+    unsigned  long index = read_index(build_path(data_path, database_name, table_name, 0)) + 1;
+
+    println("Insert in index %lu", index);
+
+    if (table) {
+        element *node = nodes->element;
+
+        while (node) {
+
+            node = node->next;
+        }
+        return 1;
+    }
+
+    return 0;
 }
 

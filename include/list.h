@@ -7,6 +7,8 @@
 
 #include <malloc.h>
 
+typedef char (*comparator)(void *, void *);
+
 typedef struct element {
     void *value;
     struct element *next;
@@ -15,6 +17,7 @@ typedef struct element {
 typedef struct list {
     element *element;
     __uint16_t length;
+    comparator comparator;
 } list;
 
 
@@ -26,6 +29,8 @@ void list_free(list *list);
 
 void foreach(list *list, void (*loop)(void *value));
 
-void *search(list *list, void *(*filter)(void *));
+void * list_search(list *list, void *value);
+
+void list_delete(list *list, void * value);
 
 #endif //DATI_LIST_H

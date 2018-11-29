@@ -2,8 +2,11 @@
 // Created by Botan on 03/11/18.
 //
 
+#include <node.h>
 #include "variable.h"
 #include "message_parser.h"
+#include "database.h"
+#include "comparator.h"
 
 #define SUCCESS 1
 #define FAILED 0
@@ -70,7 +73,7 @@ void create_database(struct session *session, __uint16_t size) {
 
     char *database = read_string(size, session->socket);
 
-    char *path = build_path(2, data_path, database);
+    char *path = build_path(data_path, database, 0);
 
     int result, error_code = 0;
 
@@ -97,7 +100,7 @@ void remove_database(struct session *session, __uint16_t size) {
 
     char *database = read_string(size, session->socket);
 
-    char *path = build_path(2, data_path, database);
+    char *path = build_path(data_path, database, 0);
 
     int result, error_code = 0;
 
@@ -125,8 +128,8 @@ void rename_database(struct session *session, __uint16_t size) {
     char *database = read_string(size, session->socket);
     char *new_name = read_string(read_ushort(session->socket), session->socket);
 
-    char *path = build_path(2, data_path, database);
-    char *new_path = build_path(2, data_path, new_name);
+    char *path = build_path(data_path, database, 0);
+    char *new_path = build_path(data_path, new_name, 0);
 
     println("Rename database '%s' to '%s'", database, new_name);
 
@@ -155,7 +158,7 @@ void rename_database(struct session *session, __uint16_t size) {
 void get_table(struct session *session, __uint16_t size) {
     char *database = read_string(size, session->socket);
 
-    container container = list_folders(build_path(2, data_path, database));
+    container container = list_folders(build_path(data_path, database, 0));
 
     write_ubyte(5, session->socket);
     write_ushort((__uint16_t) strlen(container.elements), session->socket);
@@ -176,7 +179,7 @@ void create_table(struct session *session, __uint16_t size) {
     char *database = read_string(size, session->socket);
     char *table = read_string(read_ushort(session->socket), session->socket);
 
-    char *path = build_path(3, data_path, database, table);
+    char *path = build_path(data_path, database, table, 0);
 
     int result, error_code = 0;
 
@@ -187,7 +190,7 @@ void create_table(struct session *session, __uint16_t size) {
         if (response[1] == 0)
             error_code = path_exists(path) ? TABLE_ALREADY_EXIST : DATABASE_NOT_EXIST;
         else
-            write_index(1, build_path(4, data_path, database, table, "index"));
+            write_index(1, build_path(data_path, database, table, 0));
 
     } else {
         response[1] = 0;
@@ -210,14 +213,14 @@ void remove_table(struct session *session, __uint16_t size) {
     char *database = read_string(size, session->socket);
     char *table = read_string(read_ushort(session->socket), session->socket);
 
-    char *path = build_path(3, data_path, database, table);
+    char *path = build_path(data_path, database, table, 0);
 
     int result, error_code = 0;
 
     if (valid_name(path)) {
         result = remove_directory(path);
         response[1] = (unsigned char) (result == 0 ? 1 : 0);
-        error_code = path_exists(build_path(2, data_path, database)) ? TABLE_NOT_EXIST : DATABASE_NOT_EXIST;
+        error_code = path_exists(build_path(data_path, database, 0)) ? TABLE_NOT_EXIST : DATABASE_NOT_EXIST;
     } else {
         response[1] = 0;
         error_code = UNAUTHORIZED_NAME;
@@ -240,8 +243,8 @@ void rename_table(struct session *session, __uint16_t size) {
     char *table = read_string(read_ushort(session->socket), session->socket);
     char *new_table_name = read_string(read_ushort(session->socket), session->socket);
 
-    char *path = build_path(3, data_path, database, table);
-    char *new_path = build_path(3, data_path, database, new_table_name);
+    char *path = build_path(data_path, database, table, 0);
+    char *new_path = build_path(data_path, database, new_table_name, 0);
 
     int result, error_code = 0;
 
@@ -276,10 +279,11 @@ void insert_value(struct session *session, __uint16_t size) {
 
     println("Database : %s / Table : %s / Insert length : %d", database, table, data_size);
 
+    list *nodes = list_create();
+
     for (int i = 0; i < data_size; i++) {
         char *key = read_string(read_ushort(session->socket), session->socket);
         unsigned char type = read_ubyte(session->socket);
-
 
         uint32_t data_length = PRIMITIVE_SIZE[type];
 
@@ -290,68 +294,58 @@ void insert_value(struct session *session, __uint16_t size) {
 
         recv(session->socket, data, data_length, 0);
 
-
-        if(strcmp("_id", key) == 0) { //reserved key
+        if (strcmp("_id", key) == 0) { //reserved key
             continue;
         }
 
-
-        printf("Key %s/ Type %d", key, type);
+        node *node = malloc(sizeof(node));
+        node->key = key;
+        node->type = type;
+        node->data = data;
 
         switch (type) {
             case CHAR:
-                printf(" / Value :%d|%c \n", data[0], data[0]);
-                break;
-
             case UCHAR:
-                printf(" / Value :%d|%c \n", (unsigned char) data[0], (unsigned char) data[0]);
+                node->value = (void *) data[0];
                 break;
 
             case SHORT:
-                printf(" / Value :%d \n", get_short(data));
+                node->value = (void *) get_short(data);
                 break;
 
             case USHORT:
-                printf(" / Value :%u \n", get_ushort(data));
+                node->value = (void *) get_ushort(data);
                 break;
 
             case INT:
-                printf(" / Value :%d \n", get_int(data));
+                node->value = (void *) get_int(data);
                 break;
 
             case UINT:
-                printf(" / Value :%u \n", get_uint(data));
+                node->value = (void *) get_uint(data);
                 break;
 
             case LONG:
-                printf(" / Value :%ld \n", get_long(data));
+                node->value = (void *) get_long(data);
                 break;
 
             case ULONG:
-                printf(" / Value :%lu \n", get_ulong(data));
+                node->value = (void *) get_ulong(data);
                 break;
 
-            case FLOAT: {
-                float float_value = strtof(data, NULL);
-                printf(" / Value :%f|%s$ \n", float_value, data);
-                break;
-            }
-
-            case DOUBLE: {
-                printf("Receive double : %s", data);
-                double double_value = strtod(data, NULL);
-                printf(" / Value :%lf|%s$ \n", double_value, data);
-                break;
-            }
 
             case STRING:
-                printf(" / Value :%s \n", data);
+                node->value = (void *) data;
                 break;
 
             default:
                 //send error code
                 break;
         }
+        node->comparable = type == STRING ? hash(memstrcpy(node->value)) : node->value;
+
+        list_insert(nodes, node);
     }
 
+    insert_data(database, table, nodes);
 }

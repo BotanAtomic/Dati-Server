@@ -19,7 +19,7 @@
 #include "list.h"
 
 
-void concat_string(char **str, const char *str2);
+char * concat_string(char *str, char *str2);
 
 char *memstrcpy(const char *in);
 
@@ -33,7 +33,7 @@ unsigned char path_exists(char *path);
 
 unsigned char valid_name(char *name);
 
-char *build_path(unsigned char count, char *args, ...);
+char *build_path(char *args, ...);
 
 container list_folders(char *path);
 
@@ -41,6 +41,8 @@ list * get_folders(char *path);
 
 void write_index(unsigned long value, char* path);
 
-unsigned long next_index(char *path);
+unsigned long read_index(char *path);
+
+unsigned hash(char *s);
 
 #endif //DATI_UTILS_H

@@ -7,34 +7,35 @@
 
 #include <stdint.h>
 #include "variable.h"
+#include "list.h"
+#include "tree.h"
 
-typedef struct node {
-    char *key;
-    var_type type;
-    void *value;
-} node;
+list *global_databases;
 
 typedef struct database {
     char *name;
-    struct database *next;
+    list *tables;
 } database;
 
 typedef struct table {
+    uint64_t index;
     char *name;
-    struct table *next;
+    list search_tree;
 } table;
 
 
 void load_databases();
 
-void load_database(void *database_name);
+void load_database(char *database_name);
 
-void load_tables(database database);
+void load_tables(database *database);
 
 void load_table(database *database, char *table_name);
 
 void load_values(table *table);
 
-database * get_database(char *name);
+unsigned char insert_data(char *database_name, char *table_name, list * nodes);
+
+table *find_table(char * database, char *name);
 
 #endif //DATI_DATABASE_H
