@@ -19,6 +19,7 @@ typedef struct database {
 
 typedef struct table {
     uint64_t index;
+    char* path;
     char *name;
     list search_tree;
 } table;

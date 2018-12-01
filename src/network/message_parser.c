@@ -298,10 +298,10 @@ void insert_value(struct session *session, __uint16_t size) {
             continue;
         }
 
-        node *node = malloc(sizeof(node));
+        node *node = malloc(sizeof(*node));
         node->key = key;
         node->type = type;
-        node->data = data;
+        node->length = data_length;
 
         switch (type) {
             case CHAR:
@@ -333,19 +333,18 @@ void insert_value(struct session *session, __uint16_t size) {
                 node->value = (void *) get_ulong(data);
                 break;
 
-
             case STRING:
-                node->value = (void *) data;
+                node->value = data;
                 break;
 
             default:
                 //send error code
                 break;
         }
-        node->comparable = type == STRING ? hash(memstrcpy(node->value)) : node->value;
+        node->comparable = (type == STRING) ? hash(memstrcpy(node->value)) : node->value;
 
         list_insert(nodes, node);
     }
 
-    insert_data(database, table, nodes);
+    response[0] = insert_data(database, table, nodes);
 }

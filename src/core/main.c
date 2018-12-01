@@ -4,10 +4,6 @@
 
 #define VERSION "0.0.10"
 
-void print_databases(char *database_ptr) {
-    print("%s ", ((database *) database_ptr)->name);
-}
-
 int main() {
     set_color(CYAN);
     println("      ___           ___           ___           ___           ___           ___     \n"

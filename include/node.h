@@ -5,12 +5,14 @@
 #ifndef DATI_VALUE_H
 #define DATI_VALUE_H
 
+#include <sys/types.h>
+
 typedef struct node {
     char *key;
     unsigned char type;
     void *value;
-    char *data;
     void *comparable;
+    __uint32_t length;
 } node;
 
 #endif //DATI_VALUE_H

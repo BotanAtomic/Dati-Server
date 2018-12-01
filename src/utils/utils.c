@@ -202,12 +202,12 @@ unsigned char valid_name(char *name) {
 
 void write_index(unsigned long value, char *path) {
     FILE *file_ptr;
-    file_ptr = fopen(concat_string(path, "index"), "wb");
+    file_ptr = fopen(concat_string(path, "index"), "w+b");
 
     if (file_ptr == NULL)
         return;
 
-    fprintf(file_ptr, "%lu", value);
+    fwrite(&value, sizeof(value), 1, file_ptr);
 
     fclose(file_ptr);
 }
@@ -215,7 +215,7 @@ void write_index(unsigned long value, char *path) {
 
 unsigned long read_index(char *path) {
     FILE *file_ptr;
-    file_ptr = fopen(concat_string(path, "index"), "r");
+    file_ptr = fopen(concat_string(path, "index"), "r+b");
 
     if (file_ptr == NULL) {
         return 0;
@@ -223,7 +223,7 @@ unsigned long read_index(char *path) {
 
     unsigned long index = 0;
 
-    fscanf(file_ptr, "%lu", &index);
+    fread(&index, sizeof(index), 1, file_ptr);
 
     fclose(file_ptr);
 

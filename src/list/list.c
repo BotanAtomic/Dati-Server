@@ -20,11 +20,11 @@ list *list_create() {
 }
 
 void list_insert(list *list, void *value) {
-    element *new_element = malloc(sizeof(element));
-    if (list && new_element) {
-        new_element->value = value;
-        new_element->next = list->element;
-        list->element = new_element;
+    element *element = malloc(sizeof(element));
+    if (list && element) {
+        element->value = value;
+        element->next = list->element;
+        list->element = element;
         list->length++;
     }
 }
