@@ -5,31 +5,34 @@
 #ifndef DATI_TREE_H
 #define DATI_TREE_H
 
-#include "node.h"
+#include "database.h"
 
 typedef char (*comparator)(void *, void *);
 
+typedef void *(*converter)(char *);
 
-typedef struct tree_node {
-    node *node;
-    struct tree_node *left, *right;
-} tree_node;
+typedef struct TreeNode {
+    Node *node;
+    struct TreeNode *left, *right;
+} TreeNode;
 
-typedef struct b_tree {
-    tree_node *root;
+typedef struct BinaryTree {
+    char *key;
+    TreeNode *root;
     comparator comparator;
-} b_tree;
+    converter converter;
+} BinaryTree;
 
-b_tree *create_binary_tree(comparator comparator);
+BinaryTree *createBinaryTree(comparator, converter, char *);
 
-tree_node *create_tree_node(node *node);
+TreeNode *createTreeNode(Node *);
 
-node *search_node(b_tree *, void *key);
+void searchNode(BinaryTree *, void *, int);
 
-void print_tree(tree_node *root);
+void printTree(TreeNode *);
 
-tree_node *insert_tree_node(b_tree *, node *node);
+TreeNode *insertTreeNode(BinaryTree *, Node *);
 
-tree_node *delete_tree_node(b_tree *, tree_node*,void *key);
+TreeNode *deleteTreeNode(BinaryTree *, TreeNode *, void *);
 
 #endif //DATI_TREE_H

@@ -3,101 +3,110 @@
 //
 
 #include <malloc.h>
-#include <variable.h>
-#include <utils.h>
-#include <tree.h>
 
+#include "variable.h"
+#include "utils.h"
 #include "tree.h"
+#include "buffer.h"
 
-b_tree *create_binary_tree(comparator comparator) {
-    b_tree *b_tree = malloc(sizeof(b_tree));
-    b_tree->comparator = comparator;
-    return b_tree;
+BinaryTree *createBinaryTree(comparator comparator, converter converter, char * key) {
+    BinaryTree *binaryTree = malloc(sizeof(BinaryTree));
+    binaryTree->comparator = comparator;
+    binaryTree->converter = converter;
+    binaryTree->key = key;
+    binaryTree->root = NULL;
+    return binaryTree;
 }
 
-tree_node *create_tree_node(node *node) {
-    tree_node *temp = malloc(sizeof(tree_node));
+TreeNode *createTreeNode(Node *node) {
+    TreeNode *temp = malloc(sizeof(TreeNode));
     temp->left = temp->right = NULL;
     temp->node = node;
     return temp;
 }
 
-node *search_node(b_tree *b_tree, void *key) {
-    if (b_tree->root == NULL)
-        return NULL;
-
-    int r;
-    tree_node *cursor = b_tree->root;
-    while (cursor != NULL) {
-        r = b_tree->comparator(key, cursor->node->comparable);
-        if (r < 0)
-            cursor = cursor->left;
-        else if (r > 0)
-            cursor = cursor->right;
-        else
-            return cursor->node;
+void searchNode(BinaryTree * binaryTree, void *key, int socket) {
+    if (binaryTree->root == NULL) {
+        writeUByte(0, socket);
+        return;
     }
-    return NULL;
+
+    int result;
+    TreeNode *cursor = binaryTree->root;
+    while (cursor != NULL) {
+        result = binaryTree->comparator(key, cursor->node->comparable);
+        if (result < 0)
+            cursor = cursor->left;
+        else if (result > 0)
+            cursor = cursor->right;
+        else {
+            writeUByte(1, socket);
+            sendTableValue(cursor->node->root, socket);
+            cursor = cursor->left;
+        }
+    }
+
+    writeUByte(0, socket);
 }
 
-void print_tree(tree_node *root) {
+void printTree(TreeNode *root) {
     if (root != NULL) {
-        print_tree(root->left);
+        printTree(root->left);
         if (root->node->type == STRING)
-            printf("%s ", root->node->value);
+            printf("[%u = %s]\n", root->node->comparable, root->node->value);
         else
             printf("%d ", root->node->value);
 
-        print_tree(root->right);
+        printTree(root->right);
     }
 
 }
 
 
-tree_node *insert_tree_node(b_tree *b_tree, node *node) {
-    tree_node *root = b_tree->root;
+TreeNode *insertTreeNode(BinaryTree * binaryTree, Node *node) {
+    TreeNode *root = binaryTree->root;
 
     if (root == NULL) {
-        root = create_tree_node(node);
+        root = createTreeNode(node);
     } else {
-        int is_left = 0;
+        int isLeft = 0;
         int r = 0;
-        tree_node *cursor = root;
-        tree_node *prev = NULL;
+        TreeNode *cursor = root;
+        TreeNode *prev = NULL;
 
         while (cursor != NULL) {
-            r = b_tree->comparator(node->comparable, cursor->node->comparable);
+            r = binaryTree->comparator(node->comparable, cursor->node->comparable);
             prev = cursor;
-            if (r < 0) {
-                is_left = 1;
+            if (r <= 0) {
+                isLeft = 1;
                 cursor = cursor->left;
             } else if (r > 0) {
-                is_left = 0;
+                isLeft = 0;
                 cursor = cursor->right;
             }
 
         }
-        if (is_left)
-            prev->left = create_tree_node(node);
+        if (isLeft)
+            prev->left = createTreeNode(node);
         else
-            prev->right = create_tree_node(node);
+            prev->right = createTreeNode(node);
     }
 
-    b_tree->root = root;
+    binaryTree->root = root;
     return root;
 }
 
-tree_node *delete_tree_node(b_tree *b_tree, tree_node *root, void *key) {
+TreeNode *deleteTreeNode(BinaryTree * binaryTree, TreeNode * root, void *key) {
     if (root == NULL)
         return NULL;
 
-    tree_node *cursor;
-    int r = b_tree->comparator(key, root->node->comparable);
+    TreeNode *cursor;
+    int r = binaryTree->comparator(key, root->node->comparable);
 
     if (r < 0)
-        root->left = delete_tree_node(b_tree, root->left, key);
+        root->left = deleteTreeNode(binaryTree, root->left, key);
     else if (r > 0)
-        root->right = delete_tree_node(b_tree, root->right, key);
+        root->right = deleteTreeNode(binaryTree, root->right, key);
     else {
         if (root->left == NULL) {
             cursor = root->right;
@@ -109,7 +118,7 @@ tree_node *delete_tree_node(b_tree *b_tree, tree_node *root, void *key) {
             root = cursor;
         } else {
             cursor = root->right;
-            tree_node *parent = NULL;
+            TreeNode *parent = NULL;
 
             while (cursor->left != NULL) {
                 parent = cursor;
@@ -117,14 +126,14 @@ tree_node *delete_tree_node(b_tree *b_tree, tree_node *root, void *key) {
             }
             root->node = cursor->node;
             if (parent != NULL)
-                parent->left = delete_tree_node(b_tree, parent->left, parent->left->node->comparable);
+                parent->left = deleteTreeNode(binaryTree, parent->left, parent->left->node->comparable);
             else
-                root->right = delete_tree_node(b_tree, root->right, root->right->node->comparable);
+                root->right = deleteTreeNode(binaryTree, root->right, root->right->node->comparable);
         }
 
     }
 
-    b_tree->root = root;
+    binaryTree->root = root;
     return root;
 
 }

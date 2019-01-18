@@ -9,5 +9,7 @@ enum error_code {
     DATABASE_NOT_EXIST = 11,
 
     TABLE_ALREADY_EXIST = 20,
-    TABLE_NOT_EXIST = 21
+    TABLE_NOT_EXIST = 21,
+
+    MEMORY_ERROR = 255
 };

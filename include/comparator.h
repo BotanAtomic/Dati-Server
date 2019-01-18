@@ -9,31 +9,33 @@
 #include <string.h>
 
 
-char compare_char(void *first, void *second);
+char compareChar(void *, void *);
 
-char compare_uchar(void *first, void *second);
+char compareUChar(void *, void *);
 
-char compare_short(void *first, void *second);
+char compareShort(void *, void *);
 
-char compare_ushort(void *first, void *second);
+char compareUShort(void *, void *);
 
-char compare_int(void *first, void *second);
+char compareInt(void *, void *);
 
-char compare_uint(void *first, void *second);
+char compareUInt(void *, void *);
 
-char compare_long(void *first, void *second);
+char compareLong(void *, void *);
 
-char compare_ulong(void *first, void *second);
+char compareULong(void *, void *);
 
-char compare_database(void *first, void *second);
+char compareDatabase(void *, void *);
 
-char compare_table(void *first, void *second);
+char compareTable(void *, void *);
 
-char compare_string(void *first, void *second);
+char compareString(void *, void *);
 
-static char (*COMPARATORS[])(void *first, void *second) ={
-        compare_char, compare_uchar, compare_short, compare_ushort, compare_int, compare_uint,
-        compare_long, compare_ulong, NULL/** float **/, NULL /** double **/, compare_uint /** hash **/
+char compareBinaryTree(void *, void *);
+
+static char (*COMPARATORS[])(void *, void *) ={
+        compareChar, compareUChar, compareShort, compareUShort, compareInt, compareUInt,
+        compareLong, compareULong, NULL/** float **/, NULL /** double **/, compareUInt /** hash **/
 };
 
 #endif //DATI_COMPARATOR_H

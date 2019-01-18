@@ -2,10 +2,10 @@
 #include "shell.h"
 #include "database.h"
 
-#define VERSION "0.0.10"
+#define VERSION "0.29.4"
 
 int main() {
-    set_color(CYAN);
+    setColor(CYAN);
     println("      ___           ___           ___           ___           ___           ___     \n"
             "     /\\  \\         /\\  \\         /\\  \\         /\\__\\         /\\  \\         /\\__\\    \n"
             "    /::\\  \\       /::\\  \\        \\:\\  \\       /:/  /        /::\\  \\       /:/  /    \n"
@@ -20,8 +20,9 @@ int main() {
 
     println("Version : %s\n", VERSION);
 
-    load_configuration();
-    load_databases();
-    bind_server();
+    loadConfiguration();
+    loadDatabases();
+    bindServer();
+
     return 0;
 }

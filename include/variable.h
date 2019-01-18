@@ -5,7 +5,7 @@
 #ifndef DATI_VARIABLE_H
 #define DATI_VARIABLE_H
 
-typedef enum var_type {
+typedef enum Variable {
     CHAR,
     UCHAR,
     SHORT,
@@ -17,6 +17,6 @@ typedef enum var_type {
     FLOAT,
     DOUBLE,
     STRING
-} var_type;
+} Variable;
 
 #endif //DATI_VARIABLE_H

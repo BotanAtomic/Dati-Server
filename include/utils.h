@@ -18,31 +18,32 @@
 #include "container.h"
 #include "list.h"
 
+char *concatString(char *, char *);
 
-char * concat_string(char *str, char *str2);
+char *copyString(const char *);
 
-char *memstrcpy(const char *in);
+char *getJsonValue(json_object *, const char *);
 
-char *get_json_value(json_object *json_obj, const char *key);
+unsigned char contains(char *, char[]);
 
-unsigned char contains(char *str, char c[]);
+int removeDirectory(char *);
 
-int remove_directory(char *path);
+unsigned char pathExists(char *);
 
-unsigned char path_exists(char *path);
+unsigned char isValidName(char *);
 
-unsigned char valid_name(char *name);
+char *buildPath(char *, ...);
 
-char *build_path(char *args, ...);
+Container listFolders(char *);
 
-container list_folders(char *path);
+List *getFolders(char *);
 
-list * get_folders(char *path);
+void writeIndex(unsigned long, char *);
 
-void write_index(unsigned long value, char* path);
+unsigned long readIndex(char *);
 
-unsigned long read_index(char *path);
+unsigned hash(const char *);
 
-unsigned hash(char *s);
+char * removeAllSpaces(char *);
 
 #endif //DATI_UTILS_H

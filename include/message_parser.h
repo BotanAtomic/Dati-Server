@@ -16,27 +16,28 @@
 #include "error_code.h"
 #include "utils.h"
 
-void parse(unsigned char id, struct session *session);
+void parse(unsigned char id, struct Session *);
 
-void login(struct session *session, __uint16_t size);
+void login(Session *, __uint16_t);
 
-void get_databases(struct session *session, __uint16_t size);
+void getDatabases(Session *, __uint16_t);
 
-void create_database(struct session *session, __uint16_t size);
+void createDatabase(Session *, __uint16_t);
 
-void remove_database(struct session *session, __uint16_t size);
+void removeDatabase(Session *, __uint16_t);
 
-void rename_database(struct session *session, __uint16_t size);
+void renameDatabase(Session *, __uint16_t);
 
-void get_table(struct session *session, __uint16_t size);
+void getTables(Session *, __uint16_t);
 
-void create_table(struct session *session, __uint16_t size);
+void createTable(Session *, __uint16_t);
 
-void remove_table(struct session *session, __uint16_t size);
+void removeTable(Session *, __uint16_t);
 
-void rename_table(struct session *session, __uint16_t size);
+void renameTable(Session *, __uint16_t);
 
-void insert_value(struct session *session, __uint16_t size);
+void insertValue(Session *, __uint16_t);
 
+void findValue(Session *, __uint16_t);
 
 #endif //DATI_MESSAGE_HANDLER_H

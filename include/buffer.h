@@ -6,37 +6,62 @@
 #define DATI_BUFFER_H
 
 #include <sys/socket.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "database.h"
 
 static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 0, 0, 0};
 
-void write_ubyte(unsigned char byte, int socket);
+void writeByte(char, int);
 
-void write_ushort(__uint16_t u16, int socket);
+void writeUByte(unsigned char, int);
 
-void write_ulong(__uint64_t value, int socket);
+void writeShort(int16_t , int);
 
-void write_string(char *str, int socket);
+void writeUShort(__uint16_t, int);
 
-char *read_string(size_t size, int socket);
+void writeInt(int32_t , int);
 
-__uint16_t read_ushort(int socket);
+void writeUInt(uint32_t , int);
 
-__uint32_t read_uint(int socket);
+void writeLong(int64_t, int);
 
-unsigned char read_ubyte(int socket);
+void writeULong(__uint64_t, int);
 
-__uint64_t read_ulong(int socket);
+void writeString(char *, int);
 
-int16_t get_short(const char * data);
+char *readString(size_t, int);
 
-__uint16_t get_ushort(const char * data);
+__uint16_t readUShort(int);
 
-int32_t get_int(const char * data);
+__uint32_t readUInt(int);
 
-__uint32_t get_uint(const char * data);
+unsigned char readUByte(int);
 
-int64_t get_long(const char * data);
+__uint64_t readULong(int);
 
-__uint64_t get_ulong(const char * data);
+int16_t getShort(const char *);
+
+__uint16_t getUShort(const char *);
+
+int32_t getInt(const char *);
+
+__uint32_t getUInt(const char *);
+
+int64_t getLong(const char *);
+
+__uint64_t getULong(const char *);
+
+void sendTableValue(TableValue*, int);
+
+void sendNode(Node *, int);
+
+static void *(*VAR_PARSER[])(const char *) ={
+        NULL, NULL, (void *(*)(const char *)) getShort, (void *(*)(const char *)) getShort,
+        (void *(*)(const char *)) getInt, (void *(*)(const char *)) getUInt,
+        (void *(*)(const char *)) getLong, (void *(*)(const char *)) getULong, NULL, NULL, NULL
+};
 
 #endif //DATI_BUFFER_H

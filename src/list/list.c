@@ -2,14 +2,13 @@
 // Created by Botan on 17/11/18.
 //
 
-#include <list.h>
 #include <string.h>
-#include <database.h>
 
 #include "list.h"
+#include "database.h"
 
-list *list_create() {
-    list *list = malloc(sizeof(*list));
+List *createList() {
+    List *list = malloc(sizeof(List));
 
     if (list) {
         list->element = NULL;
@@ -19,8 +18,9 @@ list *list_create() {
     return list;
 }
 
-void list_insert(list *list, void *value) {
-    element *element = malloc(sizeof(element));
+void listInsert(List *list, void *value) {
+    Element *element = malloc(sizeof(Element));
+
     if (list && element) {
         element->value = value;
         element->next = list->element;
@@ -29,8 +29,8 @@ void list_insert(list *list, void *value) {
     }
 }
 
-void list_free(list *list) {
-    element *element = list->element;
+void listFree(List *list) {
+    Element *element = list->element;
     while (element != NULL) {
         free(element);
         element = element->next;
@@ -40,8 +40,8 @@ void list_free(list *list) {
 }
 
 
-void foreach(list *list, void (*loop)(void *)) {
-    element *element = list->element;
+void foreach(List *list, void (*loop)(void *)) {
+    Element *element = list->element;
 
     while (element) {
         loop(element->value);
@@ -49,8 +49,8 @@ void foreach(list *list, void (*loop)(void *)) {
     }
 }
 
-void *list_search(list *list, void *value) {
-    element *element = list->element;
+void *listSearch(List *list, void *value) {
+    Element *element = list->element;
 
     while (element) {
         if (list->comparator(value, element->value) == 0)
@@ -62,14 +62,12 @@ void *list_search(list *list, void *value) {
     return NULL;
 }
 
-void list_delete(list *list, void *value) {
-    element *previous = list->element;
-    element *element = list->element;
-
+void listDelete(List *list, void *value) {
+    Element *previous = list->element;
+    Element *element = list->element;
 
     while (element) {
         if (list->comparator(value, element->value) == 0) {
-            printf("Delete %s \n", ((database *) element->value)->name);
             list->length--;
 
             if (list->element != element)

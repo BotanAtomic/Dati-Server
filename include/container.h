@@ -7,9 +7,9 @@
 
 #include <stdint.h>
 
-typedef struct container {
+typedef struct Container {
     char *elements;
     uint16_t length;
-} container;
+} Container;
 
 #endif //DATI_CONTAINER_H

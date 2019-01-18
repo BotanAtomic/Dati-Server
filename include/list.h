@@ -9,28 +9,27 @@
 
 typedef char (*comparator)(void *, void *);
 
-typedef struct element {
+typedef struct Element {
     void *value;
-    struct element *next;
-} element;
+    struct Element *next;
+} Element;
 
-typedef struct list {
-    element *element;
+typedef struct List {
+    Element *element;
     __uint16_t length;
     comparator comparator;
-} list;
+} List;
 
+List *createList();
 
-list *list_create();
+void listInsert(List *, void *);
 
-void list_insert(list *list, void *value);
+void listFree(List *);
 
-void list_free(list *list);
+void foreach(List *, void (*)(void *));
 
-void foreach(list *list, void (*loop)(void *value));
+void * listSearch(List *, void *);
 
-void * list_search(list *list, void *value);
-
-void list_delete(list *list, void * value);
+void listDelete(List *, void *);
 
 #endif //DATI_LIST_H

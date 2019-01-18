@@ -3,153 +3,280 @@
 //
 
 #include <malloc.h>
-#include <database.h>
+#include <error_code.h>
+#include <comparator.h>
+#include <converter.h>
 
+
+#include "tree.h"
+#include "byte_buffer.h"
 #include "database.h"
 #include "utils.h"
 #include "server.h"
 #include "shell.h"
-#include "comparator.h"
+#include "buffer.h"
 
-void load_databases() {
-    global_databases = list_create();
-    global_databases->length = 0;
-    global_databases->comparator = compare_database;
+#define INT2VOIDP(i) (void*)(uintptr_t)(i)
 
+void loadDatabases() {
+    mkdir(dataPath, 0777);
 
-    list *database_folder = get_folders(build_path(data_path, 0));
-    foreach(database_folder, (void *) load_database);
-    list_free(database_folder);
+    globalDatabases = createList();
+    globalDatabases->length = 0;
+    globalDatabases->comparator = compareDatabase;
 
-    foreach(global_databases, (void *) load_tables);
+    List *databaseFolder = getFolders(buildPath(dataPath, 0));
+    foreach(databaseFolder, (void *) loadDatabase);
+    listFree(databaseFolder);
+
+    foreach(globalDatabases, (void *) loadTables);
+    foreach(globalDatabases, (void *) loadValues);
+
+    print("\n");
 }
 
-void load_database(char *database_name) {
-    database *database = malloc(sizeof(database));
-    database->name = memstrcpy(database_name);
-    database->tables = list_create();
-    database->tables->comparator = compare_table;
+void loadDatabase(char *databaseName) {
+    Database *database = malloc(sizeof(Database));
+    database->name = copyString(databaseName);
+    database->tables = createList();
+    database->tables->comparator = compareTable;
 
-
-    list_insert(global_databases, database);
+    listInsert(globalDatabases, database);
 }
 
-void load_tables(database *database) {
-    print("Loading {%s} [", database->name);
+void loadTables(Database *database) {
+    List *tablesFolder = getFolders(buildPath(dataPath, database->name, 0));
 
-    list *tables_folder = get_folders(build_path(data_path, database->name, 0));
-
-    element *element = tables_folder->element;
+    Element *element = tablesFolder->element;
 
     while (element) {
-        load_table(database, element->value);
+        loadTable(database, element->value);
         element = element->next;
     }
 
-    print("]\n");
+    free(tablesFolder);
 
 }
 
-void load_table(database *database, char *table_name) {
-    table *table = malloc(sizeof(table));
-    table->name = memstrcpy(table_name);
-    table->path = build_path(data_path, database->name, table_name, 0);
-    table->index = read_index(table->path);
+void loadTable(Database *database, char *tableName) {
+    Table *table = malloc(sizeof(Table));
+    table->name = copyString(tableName);
+    table->database = database;
+    table->index = readIndex(buildPath(dataPath, database->name, tableName, 0));
+    table->values = createList();
+    table->binaryTreeList = createList();
+    table->binaryTreeList->comparator = compareBinaryTree;
 
     if (table->index > 0) {
-        list_insert(database->tables, table);
-        print("%s:%d, ", table_name, table->index);
+        listInsert(database->tables, table);
     } else {
-        set_color(RED);
-        println("\nCannot load table [%s] : missing index", table_name);
+        setColor(RED);
+        println("\nCannot load table [%s] : missing index", tableName);
         exit(EXIT_FAILURE);
     }
 
 }
 
-void load_values(table *table) {
-    FILE *file_ptr = fopen(concat_string(memstrcpy(table->path), "2.bin"), "r");
+void loadValues(Database *database) {
+    Element *element = database->tables->element;
 
-    if (file_ptr == NULL) {
-        printf("%s\n", build_path(memstrcpy(table->path), "2.bin", 0));
-        return;
+    while (element) {
+        Table *table = element->value;
+
+        char *path = buildPath(dataPath, database->name, table->name, 0);
+        print("Loading ");
+        setColor(CYAN);
+        print("{%s/%s}", database->name, table->name);
+
+        printSpaces(30 - (strlen(database->name) + strlen(table->name)));
+
+        setColor(YELLOW);
+        unsigned long loaded = 0;
+        for (uint64_t i = 1; i < table->index; i++) {
+            char *filePath = malloc(strlen(path) + 20 + 1 + 3); //path + max ulong + . + bin
+            sprintf(filePath, "%s%lu.bin", path, i);
+
+            FILE *filePointer = fopen(filePath, "rb");
+
+            if (!filePointer)
+                continue;
+
+            fseek(filePointer, 0L, SEEK_END);
+            size_t size = (size_t) ftell(filePointer);
+            fseek(filePointer, 0L, SEEK_SET);
+
+            char *fileData = malloc(size);
+            size_t readSize = fread(fileData, size, 1, filePointer);
+            fclose(filePointer);
+
+            if (readSize != 1)
+                continue;
+
+            ByteBuffer *byteBuffer = newByteBuffer(fileData, size);
+
+            uint16_t nodeLength;
+            byteBufferRead(byteBuffer, &nodeLength, 2);
+
+            TableValue *tableValue = createTableValue();
+            tableValue->table = table;
+            tableValue->_uuid = i;
+            List *nodes = createList();
+
+            tableValue->nodes = nodes;
+
+            Node *idNode = malloc(sizeof(Node));
+            idNode->key = "uuid";
+            idNode->type = ULONG;
+            idNode->root = tableValue;
+            idNode->value = INT2VOIDP(tableValue->_uuid);
+            idNode->comparable = idNode->value;
+            registerNode(idNode);
+            listInsert(nodes, idNode);
+
+            for (uint16_t j = 0; j < nodeLength; j++) {
+                Node *node = malloc(sizeof(Node));
+                unsigned char keyLength = 0;
+                byteBufferRead(byteBuffer, &keyLength, 1);
+
+                node->key = calloc(1, keyLength);
+                byteBufferRead(byteBuffer, node->key, keyLength);
+
+                byteBufferRead(byteBuffer, &node->type, 1);
+                byteBufferRead(byteBuffer, &node->length, 4);
+
+                char *data = calloc(1, node->length);
+                byteBufferRead(byteBuffer, data, node->length);
+
+                if (node->type == CHAR || node->type == UCHAR || node->type == STRING) {
+                    if (node->type == STRING)
+                        node->value = copyString(data);
+                    else {
+                        node->value = INT2VOIDP(data[0]);
+                    }
+                } else {
+                    node->value = VAR_PARSER[node->type](data);
+                }
+
+                node->comparable = (node->type == STRING) ?
+                                   INT2VOIDP(hash((const char *) node->value)) : node->value;
+
+                node->root = tableValue;
+
+                free(data);
+                listInsert(nodes, node);
+                registerNode(node);
+            }
+            freeByteBuffer(byteBuffer);
+            loaded++;
+        }
+        printf("[ %lu values / index:%lu ]\n", loaded, table->index);
+        resetColor();
+        element = element->next;
     }
-
-
-    fseek(file_ptr, 11, 0);
-    char * key = malloc(6);
-
-    fread(key, 6, 1, file_ptr);
-
-    printf("Key : %s", key);
-
 }
 
 
-table *find_table(char *database_name, char *table_name) {
-    database *database = list_search(global_databases, database_name);
+Table *findTable(char *databaseName, char *tableName) {
+    Database *database = listSearch(globalDatabases, databaseName);
 
     if (database)
-        return list_search(database->tables, table_name);
+        return listSearch(database->tables, tableName);
 
     return NULL;
 }
 
-unsigned char insert_data(char *database_name, char *table_name, list *nodes) {
-    table *table = find_table(database_name, table_name);
+void insertNodes(char *databaseName, char *tableName, TableValue *tableValue, int socket) {
+    Table *table = findTable(databaseName, tableName);
+    tableValue->table = table;
 
-    char *table_path = build_path(data_path, database_name, table_name, 0);
-
-    unsigned long index = read_index(table_path);
-
-    char file_name[sizeof(unsigned long) * 8 + 5]; //5 = 1 + 4(.bin)
-
-    sprintf(file_name, "%lu.bin", index);
-
-    FILE *file_ptr;
-    file_ptr = fopen(concat_string(table_path, file_name), "w+b");
-
-    if (file_ptr == NULL) {
-        println("Cannot create binary file[%s] in path: %s", file_name, table_path);
-        return 0;
-    }
-
-    printf("Write in file %s\n", file_name);
-
-    fwrite(&nodes->length, 2, 1, file_ptr);
-
-    if (table) {
-        element *current_node = nodes->element;
-
-        while (current_node) {
-            node *node = current_node->value;
-
-            if (node->type == STRING) {
-                printf("String:%s\n", ((char *) node->value));
-            } else if (node->type == CHAR) {
-                printf("Char:%c\n", (char) node->value);
-            } else if (node->type == SHORT) {
-                printf("UInt:%d\n", (int16_t) node->value);
-            }
-
-            uint16_t key_length = (uint16_t) strlen(node->key);
-            fwrite(&key_length, 2, 1, file_ptr);
-            fwrite(&node->key, key_length, 1, file_ptr);
-            fwrite(&node->type, 1, 1, file_ptr);
-            char *data;
-            memcpy(&data, node->type == STRING ? node->value : &node->value, node->length);
-            fwrite(&data, node->length, 1, file_ptr);
-            current_node = current_node->next;
-
-
+    if (!table) {
+        println("Cannot find table %s", tableName);
+        if (socket > 0) {
+            writeUByte(0, socket);
+            writeUByte(TABLE_NOT_EXIST, socket);
         }
+        return;
     }
 
-    write_index(++index, table_path);
+    char *path = buildPath(dataPath, table->database->name, table->name, 0);
 
-    fflush(file_ptr);
-    fclose(file_ptr);
+    uint64_t index = table->index;
 
-    return (unsigned char) (table ? 1 : 0);
+    char fileName[sizeof(unsigned long) * 8 + 5]; //5 = 1 + 4(.bin)
+
+    sprintf(fileName, "%lu.bin", index);
+
+    FILE *filePointer;
+    filePointer = fopen(concatString(path, fileName), "w+b");
+
+    if (filePointer == NULL) {
+        println("Cannot create binary file[%s] in path: %s", fileName, path);
+        writeUByte(0, socket);
+        writeUByte(MEMORY_ERROR, socket);
+        return;
+    }
+
+    List *nodes = tableValue->nodes;
+
+
+    fwrite(&nodes->length, 2, 1, filePointer);
+
+    for (Element *currentNode = nodes->element; currentNode; currentNode = currentNode->next) {
+        Node *node = currentNode->value;
+
+        unsigned char keyLength = (unsigned char) (strlen(node->key) + 1);
+        fwrite(&keyLength, 1, 1, filePointer);
+        fwrite(node->key, keyLength, 1, filePointer);
+        fwrite(&node->type, 1, 1, filePointer);
+        fwrite(&node->length, 4, 1, filePointer);
+        fwrite(node->type == STRING ? node->value : &node->value, node->length, 1, filePointer);
+
+        registerNode(node);
+    }
+
+    Node *idNode = malloc(sizeof(Node));
+    idNode->key = "uuid";
+    idNode->type = ULONG;
+    idNode->root = tableValue;
+    idNode->value = INT2VOIDP(tableValue->_uuid);
+    idNode->comparable = idNode->value;
+    registerNode(idNode);
+    listInsert(nodes, idNode);
+
+    tableValue->_uuid = index;
+    listInsert(table->values, tableValue);
+
+    table->index++;
+    writeIndex(table->index, path);
+
+    fflush(filePointer);
+    fclose(filePointer);
+
+    free(path);
+
+    if (socket > 0) {
+        writeUByte(1, socket);
+        writeULong(tableValue->_uuid, socket);
+    }
+}
+
+TableValue *createTableValue() {
+    TableValue *tableValue = malloc(sizeof(TableValue));
+    tableValue->nodes = createList();
+    tableValue->_uuid = 0;
+    return tableValue;
+}
+
+void registerNode(Node *node) {
+    char *key = node->key;
+    List *binaryTreeList = node->root->table->binaryTreeList;
+    BinaryTree *binaryTree = listSearch(binaryTreeList, key);
+
+    if (binaryTree == NULL) {
+        binaryTree = createBinaryTree(COMPARATORS[node->type], CONVERTERS[node->type], key);
+        listInsert(binaryTreeList, binaryTree);
+    }
+
+    insertTreeNode(binaryTree, node);
 }
 

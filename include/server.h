@@ -15,23 +15,23 @@
 #include "shell.h"
 #include "utils.h"
 
-typedef struct session {
+typedef struct Session {
     unsigned char connected;
     int socket;
     int id;
-} session;
+} Session;
 
-int port, max_connection;
+int port, maxConnection;
 
-char *data_path;
+char *dataPath;
 
 char *username, *password;
 
-void *connection_handler(void *socket_desc);
+void *connectionHandler(void *);
 
-void load_configuration();
+void loadConfiguration();
 
-void bind_server();
+void bindServer();
 
 #endif //DATI_SERVER_H
 

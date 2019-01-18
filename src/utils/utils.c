@@ -13,9 +13,9 @@
 #define FILE_SEPARATOR "/"
 #endif
 
-static char exclude[] = {' ', '@', '\0'};
+static char EXCLUDE[] = {' ', '@', '\0'};
 
-char *concat_string(char *str, char *str2) {
+char *concatString(char *str, char *str2) {
     if (str == NULL)
         str = "";
     else if (str2 == NULL)
@@ -28,18 +28,15 @@ char *concat_string(char *str, char *str2) {
     return string;
 }
 
-char *memstrcpy(const char *in) {
-    char *out;
-
-    out = malloc(strlen(in) + 1);
+char *copyString(const char *in) {
+    char *out = malloc(strlen(in) + 1);
     strcpy(out, in);
-
     return out;
 }
 
 
-char *get_json_value(json_object *json_obj, const char *key) {
-    return memstrcpy(json_object_get_string(json_object_object_get(json_obj, key)));
+char *getJsonValue(json_object *json_obj, const char *key) {
+    return copyString(json_object_get_string(json_object_object_get(json_obj, key)));
 }
 
 unsigned char contains(char *str, char *c) {
@@ -53,98 +50,85 @@ unsigned char contains(char *str, char *c) {
     return 0;
 }
 
-int remove_directory(char *path) {
-    DIR *d = opendir(path);
-    size_t path_len = strlen(path);
-    int r = -1;
+int removeDirectory(char *path) {
+    size_t pathLength;
+    char *fullPath;
+    DIR *dir;
+    struct stat stat_path, stat_entry;
+    struct dirent *entry;
 
-    if (d) {
-        struct dirent *p;
+    stat(path, &stat_path);
 
-        r = 0;
+    if (S_ISDIR(stat_path.st_mode) == 0) {
+        return -1;
+    }
 
-        while (!r && (p = readdir(d))) {
-            int r2 = -1;
-            char *buf;
-            size_t len;
+    if ((dir = opendir(path)) == NULL) {
+        return -1;
+    }
 
-            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
-                continue;
+    pathLength = strlen(path);
 
-            len = path_len + strlen(p->d_name) + 2;
-            buf = malloc(len);
+    while ((entry = readdir(dir)) != NULL) {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, ".."))
+            continue;
 
-            if (buf) {
-                struct stat statbuf;
+        fullPath = calloc(pathLength + strlen(entry->d_name) + 1, sizeof(char));
+        strcpy(fullPath, path);
+        strcat(fullPath, FILE_SEPARATOR);
+        strcat(fullPath, entry->d_name);
 
-                buf = build_path(path, p->d_name, 0);
+        stat(fullPath, &stat_entry);
 
-                if (!stat(buf, &statbuf)) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        r2 = remove_directory(buf);
-                    } else {
-                        r2 = unlink(buf);
-                    }
-                }
-
-                free(buf);
-            }
-
-            r = r2;
+        if (S_ISDIR(stat_entry.st_mode) != 0) {
+            removeDirectory(fullPath);
+            continue;
         }
-
-        closedir(d);
+        unlink(fullPath);
     }
 
-    if (!r) {
-        r = rmdir(path);
-    }
+    closedir(dir);
 
-    return r;
+    return rmdir(path);
 }
 
-unsigned char path_exists(char *path) {
+unsigned char pathExists(char *path) {
     struct stat sb;
-
-    if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
-        return 1;
-    } else {
-        return 0;
-    }
+    return (unsigned char) ((stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) ? 1 : 0);
 }
 
-container list_folders(char *path) {
-    DIR *dir = opendir(path);
+Container listFolders(char *path) {
+    DIR *directory = opendir(path);
     char *elements = "";
 
     uint16_t count = 0;
-    if (dir != NULL) {
+    if (directory != NULL) {
 
         struct dirent *path_entries;
-        while ((path_entries = readdir(dir)) != NULL) {
+        while ((path_entries = readdir(directory)) != NULL) {
             if (path_entries->d_type == DT_DIR && strcmp(path_entries->d_name, ".") != 0 &&
                 strcmp(path_entries->d_name, "..") != 0) {
 
                 if (strlen(elements) > 0)
-                    elements = concat_string(elements, "@");
+                    elements = concatString(elements, "@");
 
-                elements = concat_string(elements, path_entries->d_name);
+                elements = concatString(elements, path_entries->d_name);
                 count++;
             }
         }
     }
 
-    closedir(dir);
+    closedir(directory);
 
-    container container;
+    Container container;
     container.length = count;
     container.elements = elements;
 
     return container;
 }
 
-list *get_folders(char *path) {
-    list *folders = list_create();
+List *getFolders(char *path) {
+    List *folders = createList();
 
     DIR *dir = opendir(path);
 
@@ -154,7 +138,7 @@ list *get_folders(char *path) {
         while ((path_entries = readdir(dir)) != NULL) {
             if (path_entries->d_type == DT_DIR && strcmp(path_entries->d_name, ".") != 0 &&
                 strcmp(path_entries->d_name, "..") != 0) {
-                list_insert(folders, path_entries->d_name);
+                listInsert(folders, path_entries->d_name);
             }
         }
     }
@@ -171,21 +155,23 @@ list *get_folders(char *path) {
  * @return
  */
 
-char *build_path(char *args, ...) {
+char *buildPath(char *args, ...) {
     char *path = "";
 
     va_list ap;
     va_start(ap, args);
 
-    path = concat_string(path, args);
-    path = concat_string(path, FILE_SEPARATOR);
+    path = concatString(path, args);
+
+    if (args[strlen(args) - 1] != FILE_SEPARATOR[0])
+        path = concatString(path, FILE_SEPARATOR);
 
     char *tmp = args;
     int i = 0;
     while (tmp) {
         if (i > 0)
-            path = concat_string(path, FILE_SEPARATOR);
-        path = concat_string(path, tmp = va_arg(ap, char*));
+            path = concatString(path, FILE_SEPARATOR);
+        path = concatString(path, tmp = va_arg(ap, char*));
         i++;
     }
 
@@ -194,43 +180,43 @@ char *build_path(char *args, ...) {
     return path;
 }
 
-unsigned char valid_name(char *name) {
-    if (strlen(name) > 255 || contains(name, exclude))
+unsigned char isValidName(char *name) {
+    if (strlen(name) > 255 || contains(name, EXCLUDE))
         return 0;
     return 1;
 }
 
-void write_index(unsigned long value, char *path) {
-    FILE *file_ptr;
-    file_ptr = fopen(concat_string(path, "index"), "w+b");
+void writeIndex(unsigned long value, char *path) {
+    FILE *filePointer;
+    filePointer = fopen(concatString(path, "index"), "w+b");
 
-    if (file_ptr == NULL)
+    if (filePointer == NULL)
         return;
 
-    fwrite(&value, sizeof(value), 1, file_ptr);
+    fwrite(&value, sizeof(value), 1, filePointer);
 
-    fclose(file_ptr);
+    fclose(filePointer);
 }
 
 
-unsigned long read_index(char *path) {
-    FILE *file_ptr;
-    file_ptr = fopen(concat_string(path, "index"), "r+b");
+unsigned long readIndex(char *path) {
+    FILE *filePointer;
+    filePointer = fopen(concatString(path, "index"), "rb");
 
-    if (file_ptr == NULL) {
+    if (filePointer == NULL) {
         return 0;
     }
 
     unsigned long index = 0;
 
-    fread(&index, sizeof(index), 1, file_ptr);
+    fread(&index, sizeof(index), 1, filePointer);
 
-    fclose(file_ptr);
+    fclose(filePointer);
 
     return index;
 }
 
-unsigned hash(char *data) {
+unsigned hash(const char *data) {
     uint32_t a = 1, b = 0;
     size_t index;
 
@@ -240,6 +226,19 @@ unsigned hash(char *data) {
     }
 
     return (b << 16) | a;
+}
+
+char *removeAllSpaces(char *source) {
+    char *result = malloc(strlen(source));
+
+    int x = 0;
+    do {
+        if (*source != ' ')
+            result[x++] = *source;
+    } while (*source++ != 0);
+
+    result = realloc(result, strlen(result) + 1);
+    return result;
 }
 
 

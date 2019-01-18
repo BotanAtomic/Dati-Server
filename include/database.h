@@ -8,35 +8,53 @@
 #include <stdint.h>
 #include "variable.h"
 #include "list.h"
-#include "tree.h"
 
-list *global_databases;
+List *globalDatabases;
 
-typedef struct database {
+typedef struct Database {
     char *name;
-    list *tables;
-} database;
+    List *tables;
+} Database;
 
-typedef struct table {
+typedef struct Table {
     uint64_t index;
-    char* path;
+    Database *database;
     char *name;
-    list search_tree;
-} table;
+    List *binaryTreeList;
+    List *values;
+} Table;
 
+typedef struct TableValue {
+    List *nodes;
+    __uint64_t _uuid;
+    Table* table;
+} TableValue;
 
-void load_databases();
+typedef struct Node {
+    char *key;
+    void *value;
+    void *comparable;
+    unsigned char type;
+    __uint32_t length;
+    TableValue *root;
+} Node;
 
-void load_database(char *database_name);
+TableValue *createTableValue();
 
-void load_tables(database *database);
+void loadDatabases();
 
-void load_table(database *database, char *table_name);
+void loadDatabase(char *);
 
-void load_values(table *table);
+void loadTables(Database *);
 
-unsigned char insert_data(char *database_name, char *table_name, list * nodes);
+void loadTable(Database *, char *);
 
-table *find_table(char * database, char *name);
+void loadValues(Database *);
+
+void insertNodes(char *, char *, TableValue *, int);
+
+Table *findTable(char *, char *);
+
+void registerNode(Node* node);
 
 #endif //DATI_DATABASE_H

@@ -10,14 +10,15 @@
 #define BLUE  "\x1B[34m"
 #define MAGENTA  "\x1B[35m"
 #define CYAN  "\x1B[36m"
-#define WHITE  "\x1B[37m"
 
 
 void println(const char *__restrict __format, ...);
 
 void print(const char *__restrict __format, ...);
 
-void set_color(char* color);
+void printSpaces(size_t);
 
-void reset_color();
+void setColor(char *);
+
+void resetColor();
 
