@@ -316,8 +316,6 @@ void renameTable(Session *session, __uint16_t size) {
 }
 
 void insertValue(Session *session, __uint16_t size) {
-    long long start = currentTimestamp();
-
     char *database = readString(size, session->socket);
     Table *table = findTable(database, readString(readUShort(session->socket), session->socket));
     unsigned char async = readUByte(session->socket);
@@ -408,10 +406,6 @@ void insertValue(Session *session, __uint16_t size) {
     }
 
     insertFuture(tableValue);
-
-    long long end = currentTimestamp();
-
-    println("Time: %lu ms", end - start);
 }
 
 void findValue(Session *session, __uint16_t size) {

@@ -15,10 +15,9 @@ void *schedule(void *second) {
 
         for (long i = 0; i < bufferIndex; i++) {
             writeTableValue(bufferActions[i]);
+            bufferActions[i] = NULL;
         }
 
-        free(bufferActions);
-        bufferActions = malloc(sizeof(TableValue) * MAX_BUFFER_SIZE);
         bufferIndex = 0;
 
         for (Element *element = globalDatabases->element; element != NULL; element = element->next) {
