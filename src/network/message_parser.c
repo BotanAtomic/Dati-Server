@@ -5,6 +5,7 @@
 #include <message_parser.h>
 #include <tree.h>
 
+#include "scheduler.h"
 #include "variable.h"
 #include "message_parser.h"
 #include "database.h"
@@ -27,7 +28,7 @@ void parse(unsigned char id, Session *session) {
 
     println("Reception of [message_id : %d / size : %d]", id, size);
 
-    if (session->connected || id == 0)
+    if ((session->connected || id == 0) && id >= 0 && id < 11)
         messages[id](session, size);
 
 }
@@ -71,8 +72,6 @@ void getDatabases(Session *session, __uint16_t size) {
 
     if (container.length > 0)
         writeString(container.elements, session->socket);
-
-    println("Send database '%s'", container.elements);
 
     if (strlen(container.elements) > 0)
         free(container.elements);
@@ -151,8 +150,6 @@ void renameDatabase(Session *session, __uint16_t size) {
     char *path = buildPath(dataPath, database_name, 0);
     char *new_path = buildPath(dataPath, new_name, 0);
 
-    println("Rename database '%s' to '%s'", database_name, new_name);
-
     int result, error_code = 0;
 
     if (isValidName(path)) {
@@ -193,8 +190,6 @@ void getTables(Session *session, __uint16_t size) {
     if (container.length > 0)
         writeString(container.elements, session->socket);
 
-    println("Send tables of database[%s] :  '%s'", database, container.elements);
-
     if (strlen(container.elements) > 0)
         free(container.elements);
 }
@@ -202,10 +197,10 @@ void getTables(Session *session, __uint16_t size) {
 void createTable(Session *session, __uint16_t size) {
     unsigned char response[2] = {6};
 
-    char *database_name = readString(size, session->socket);
+    char *databaseName = readString(size, session->socket);
     char *table = readString(readUShort(session->socket), session->socket);
 
-    char *path = buildPath(dataPath, database_name, table, 0);
+    char *path = buildPath(dataPath, databaseName, table, 0);
 
     int result, error_code = 0;
 
@@ -216,7 +211,7 @@ void createTable(Session *session, __uint16_t size) {
         if (!response[1])
             error_code = pathExists(path) ? TABLE_ALREADY_EXIST : DATABASE_NOT_EXIST;
         else
-            writeIndex(1, buildPath(dataPath, database_name, table, 0));
+            writeIndex(1, buildPath(dataPath, databaseName, table, 0));
 
     } else {
         response[1] = 0;
@@ -226,9 +221,9 @@ void createTable(Session *session, __uint16_t size) {
     send(session->socket, response, 2, 0);
 
     if (response[1])
-        loadTable((Database *) listSearch(globalDatabases, database_name), table);
+        loadTable((Database *) listSearch(globalDatabases, databaseName), table);
 
-    free(database_name);
+    free(databaseName);
     free(table);
     free(path);
 
@@ -321,14 +316,39 @@ void renameTable(Session *session, __uint16_t size) {
 }
 
 void insertValue(Session *session, __uint16_t size) {
+    long long start = currentTimestamp();
+
     char *database = readString(size, session->socket);
-    char *table = readString(readUShort(session->socket), session->socket);
+    Table *table = findTable(database, readString(readUShort(session->socket), session->socket));
     unsigned char async = readUByte(session->socket);
 
+    char invalid = 0;
+
+    if (!table) {
+        if (!async) {
+            writeUByte(0, session->socket);
+            writeUByte(TABLE_NOT_EXIST, session->socket);
+        }
+        invalid = 1;
+    }
 
     uint16_t nodesLength = readUShort(session->socket);
 
     TableValue *tableValue = createTableValue();
+    Node *idNode = malloc(sizeof(Node));
+
+    if (!invalid) {
+        tableValue->table = table;
+        tableValue->_uuid = table->index;
+        table->index++;
+
+        idNode->key = "uuid";
+        idNode->type = ULONG;
+        idNode->root = tableValue;
+        idNode->value = INT2VOIDP(tableValue->_uuid);
+        idNode->comparable = idNode->value;
+        registerNode(idNode);
+    }
 
     for (int i = 0; i < nodesLength; i++) {
         char *key = readString(readUByte(session->socket), session->socket);
@@ -344,36 +364,54 @@ void insertValue(Session *session, __uint16_t size) {
 
         recv(session->socket, data, dataLength, 0);
 
-        if (strcmp("_id", key) == 0) { //reserved key
+        if (strcmp("uuid", key) == 0) { //reserved key
             continue;
         }
 
-        Node *node = malloc(sizeof(Node));
-        node->key = key;
-        node->type = type;
-        node->length = dataLength;
-        node->root = tableValue;
+        if (!invalid) {
+            Node *node = malloc(sizeof(Node));
+            node->key = key;
+            node->type = type;
+            node->length = dataLength;
+            node->root = tableValue;
 
-        if (type == CHAR || type == UCHAR || type == STRING) {
-            if (type == STRING) {
-                node->value = malloc(dataLength + 1);
-                strcpy(node->value, data);
-                ((char *) node->value)[dataLength] = 0;
+            if (type == CHAR || type == UCHAR || type == STRING) {
+                if (type == STRING) {
+                    node->value = malloc(dataLength + 1);
+                    strcpy(node->value, data);
+                    ((char *) node->value)[dataLength] = 0;
+                } else {
+                    char c = data[0];
+                    node->value = INT2VOIDP(c);
+                }
             } else {
-                char c = data[0];
-                node->value = INT2VOIDP(c);
+                node->value = VAR_PARSER[type](data);
             }
-        } else {
-            node->value = VAR_PARSER[type](data);
+
+            node->comparable = (type == STRING) ? INT2VOIDP(hash(copyString((const char *) node->value))) : node->value;
+
+            listInsert(tableValue->nodes, node);
+            registerNode(node);
         }
 
         free(data);
-        node->comparable = (type == STRING) ? INT2VOIDP(hash(copyString((const char *) node->value))) : node->value;
-
-        listInsert(tableValue->nodes, node);
     }
 
-    insertNodes(database, table, tableValue, !async ? session->socket : -1);
+    if (!invalid) {
+        listInsert(tableValue->nodes, idNode);
+        listInsert(table->values, tableValue);
+    }
+
+    if (!async) {
+        writeUByte(1, session->socket);
+        writeULong(tableValue->_uuid, session->socket);
+    }
+
+    insertFuture(tableValue);
+
+    long long end = currentTimestamp();
+
+    println("Time: %lu ms", end - start);
 }
 
 void findValue(Session *session, __uint16_t size) {
@@ -381,19 +419,53 @@ void findValue(Session *session, __uint16_t size) {
     char *tableName = readString(readUShort(session->socket), session->socket);
     char *filter = removeAllSpaces(readString(readUByte(session->socket), session->socket));
 
-    char *key = strtok(filter, "=");
-    char *value = strtok(NULL, "=");
+    char comparator = 0;
+    char key[256];
+    char value[256];
 
+    char keyLength = 0;
+    char valueLength = 0;
+
+    char all = !strcmp("--all", filter);
+
+    if (!all) {
+        for (int i = 0; i < strlen(filter); i++) {
+            char c = filter[i];
+            if (c == '=' || c == '>' || c == '<') {
+                comparator = c;
+                key[i] = 0;
+            } else {
+                if (comparator > 0) {
+                    value[i - keyLength - 1] = c;
+                    valueLength++;
+                } else {
+                    key[i] = c;
+                    keyLength++;
+                }
+            }
+        }
+    } else comparator = 1;
+
+    value[valueLength] = 0;
 
     Table *table = findTable(databaseName, tableName);
+
+    if (!table) {
+        writeUByte(0, session->socket);
+        return;
+    }
 
     List *binaryTreeList = table->binaryTreeList;
     BinaryTree *binaryTree = listSearch(binaryTreeList, key);
 
-    println("Search : %s/%s", key, value);
-
-    if (binaryTree != NULL) {
-        searchNode(binaryTree, binaryTree->converter(value), session->socket);
+    if ((binaryTree != NULL && comparator > 0) || (all && table->values->length > 0)) {
+        if (all) {
+            for (Element *element = table->values->element; element != NULL; element = element->next) {
+                sendTableValue(element->value, session->socket);
+            }
+            writeUByte(0, session->socket);
+        } else
+            searchNode(binaryTree, binaryTree->converter(value), comparator, session->socket);
     } else {
         writeUByte(0, session->socket);
     }

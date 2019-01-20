@@ -47,15 +47,11 @@ void loadDatabase(char *databaseName) {
 void loadTables(Database *database) {
     List *tablesFolder = getFolders(buildPath(dataPath, database->name, 0));
 
-    Element *element = tablesFolder->element;
-
-    while (element) {
+    for (Element *element = tablesFolder->element; element; element = element->next) {
         loadTable(database, element->value);
-        element = element->next;
     }
 
     free(tablesFolder);
-
 }
 
 void loadTable(Database *database, char *tableName) {
@@ -78,9 +74,7 @@ void loadTable(Database *database, char *tableName) {
 }
 
 void loadValues(Database *database) {
-    Element *element = database->tables->element;
-
-    while (element) {
+    for (Element *element = database->tables->element; element != NULL; element = element->next) {
         Table *table = element->value;
 
         char *path = buildPath(dataPath, database->name, table->name, 0);
@@ -168,11 +162,12 @@ void loadValues(Database *database) {
             }
             freeByteBuffer(byteBuffer);
             loaded++;
+            listInsert(table->values, tableValue);
         }
         printf("[ %lu values / index:%lu ]\n", loaded, table->index);
         resetColor();
-        element = element->next;
     }
+
 }
 
 
@@ -185,34 +180,19 @@ Table *findTable(char *databaseName, char *tableName) {
     return NULL;
 }
 
-void insertNodes(char *databaseName, char *tableName, TableValue *tableValue, int socket) {
-    Table *table = findTable(databaseName, tableName);
-    tableValue->table = table;
-
-    if (!table) {
-        println("Cannot find table %s", tableName);
-        if (socket > 0) {
-            writeUByte(0, socket);
-            writeUByte(TABLE_NOT_EXIST, socket);
-        }
-        return;
-    }
-
+void writeTableValue(TableValue *tableValue) {
+    Table *table = tableValue->table;
     char *path = buildPath(dataPath, table->database->name, table->name, 0);
-
-    uint64_t index = table->index;
 
     char fileName[sizeof(unsigned long) * 8 + 5]; //5 = 1 + 4(.bin)
 
-    sprintf(fileName, "%lu.bin", index);
+    sprintf(fileName, "%lu.bin", tableValue->_uuid);
 
     FILE *filePointer;
-    filePointer = fopen(concatString(path, fileName), "w+b");
+    filePointer = fopen(concatString(path, fileName), "wb");
 
     if (filePointer == NULL) {
         println("Cannot create binary file[%s] in path: %s", fileName, path);
-        writeUByte(0, socket);
-        writeUByte(MEMORY_ERROR, socket);
         return;
     }
 
@@ -230,34 +210,13 @@ void insertNodes(char *databaseName, char *tableName, TableValue *tableValue, in
         fwrite(&node->type, 1, 1, filePointer);
         fwrite(&node->length, 4, 1, filePointer);
         fwrite(node->type == STRING ? node->value : &node->value, node->length, 1, filePointer);
-
-        registerNode(node);
     }
 
-    Node *idNode = malloc(sizeof(Node));
-    idNode->key = "uuid";
-    idNode->type = ULONG;
-    idNode->root = tableValue;
-    idNode->value = INT2VOIDP(tableValue->_uuid);
-    idNode->comparable = idNode->value;
-    registerNode(idNode);
-    listInsert(nodes, idNode);
-
-    tableValue->_uuid = index;
-    listInsert(table->values, tableValue);
-
-    table->index++;
-    writeIndex(table->index, path);
 
     fflush(filePointer);
     fclose(filePointer);
 
     free(path);
-
-    if (socket > 0) {
-        writeUByte(1, socket);
-        writeULong(tableValue->_uuid, socket);
-    }
 }
 
 TableValue *createTableValue() {

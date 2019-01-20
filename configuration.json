@@ -3,5 +3,6 @@
   "network-port": 6999,
   "max-connection": 10,
   "username": "root",
-  "password" : "password"
+  "password" : "password",
+  "flush-time": 120
 }

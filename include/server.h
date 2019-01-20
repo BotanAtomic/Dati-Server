@@ -27,6 +27,8 @@ char *dataPath;
 
 char *username, *password;
 
+unsigned short flushTime;
+
 void *connectionHandler(void *);
 
 void loadConfiguration();

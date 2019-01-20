@@ -154,6 +154,7 @@ int64_t getLong(const char *buffer) {
 }
 
 void sendTableValue(TableValue *tableValue, int socket) {
+    writeUByte(1, socket);
     writeUShort(tableValue->nodes->length, socket);
     writeULong(tableValue->_uuid, socket);
 

@@ -38,6 +38,8 @@ void loadConfiguration() {
         username = getJsonValue(json_object, "username");
         password = getJsonValue(json_object, "password");
 
+        flushTime = (unsigned short) strtol(getJsonValue(json_object, "flush-time"), NULL, 10);
+
         setColor(BLUE);
         println("SUCCESS\n");
         fclose(file);

@@ -12,19 +12,19 @@
 
 #include "database.h"
 
-static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 0, 0, 0};
+static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 0, 0};
 
 void writeByte(char, int);
 
 void writeUByte(unsigned char, int);
 
-void writeShort(int16_t , int);
+void writeShort(int16_t, int);
 
 void writeUShort(__uint16_t, int);
 
-void writeInt(int32_t , int);
+void writeInt(int32_t, int);
 
-void writeUInt(uint32_t , int);
+void writeUInt(uint32_t, int);
 
 void writeLong(int64_t, int);
 
@@ -54,7 +54,7 @@ int64_t getLong(const char *);
 
 __uint64_t getULong(const char *);
 
-void sendTableValue(TableValue*, int);
+void sendTableValue(TableValue *, int);
 
 void sendNode(Node *, int);
 

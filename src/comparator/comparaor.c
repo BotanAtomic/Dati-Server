@@ -54,6 +54,7 @@ char compareLong(void *first, void *second) {
     int64_t left = (int64_t) first;
     int64_t right = (int64_t) second;
 
+
     return (char) (left > right ? 1 : left < right ? -1 : 0);
 }
 
@@ -72,6 +73,13 @@ char compareDatabase(void *first, void *second) {
 char compareTable(void *first, void *second) {
     Table *table = second;
     return (char) strcmp(table->name, (char *) first);
+}
+
+char compareTableValue(void *first, void *second) {
+    TableValue *left = first;
+    TableValue *right = second;
+
+    return left->_uuid == right->_uuid;
 }
 
 char compareString(void *first, void *second) {

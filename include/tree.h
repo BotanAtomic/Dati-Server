@@ -27,9 +27,7 @@ BinaryTree *createBinaryTree(comparator, converter, char *);
 
 TreeNode *createTreeNode(Node *);
 
-void searchNode(BinaryTree *, void *, int);
-
-void printTree(TreeNode *);
+void searchNode(BinaryTree *, void *, char, int);
 
 TreeNode *insertTreeNode(BinaryTree *, Node *);
 

@@ -1,6 +1,7 @@
 #include "server.h"
 #include "shell.h"
 #include "database.h"
+#include "scheduler.h"
 
 #define VERSION "0.29.4"
 
@@ -22,6 +23,7 @@ int main() {
 
     loadConfiguration();
     loadDatabases();
+    startTimer(flushTime);
     bindServer();
 
     return 0;

@@ -3,13 +3,14 @@
 //
 
 #include <malloc.h>
+#include "comparator.h"
 
 #include "variable.h"
 #include "utils.h"
 #include "tree.h"
 #include "buffer.h"
 
-BinaryTree *createBinaryTree(comparator comparator, converter converter, char * key) {
+BinaryTree *createBinaryTree(comparator comparator, converter converter, char *key) {
     BinaryTree *binaryTree = malloc(sizeof(BinaryTree));
     binaryTree->comparator = comparator;
     binaryTree->converter = converter;
@@ -25,7 +26,7 @@ TreeNode *createTreeNode(Node *node) {
     return temp;
 }
 
-void searchNode(BinaryTree * binaryTree, void *key, int socket) {
+void searchNode(BinaryTree *binaryTree, void *key, char comparator, int socket) {
     if (binaryTree->root == NULL) {
         writeUByte(0, socket);
         return;
@@ -35,35 +36,29 @@ void searchNode(BinaryTree * binaryTree, void *key, int socket) {
     TreeNode *cursor = binaryTree->root;
     while (cursor != NULL) {
         result = binaryTree->comparator(key, cursor->node->comparable);
-        if (result < 0)
-            cursor = cursor->left;
-        else if (result > 0)
+        if (result < 0) {
+            if (comparator == SUPERIOR)
+                sendTableValue(cursor->node->root, socket);
+
+            cursor = comparator == SUPERIOR ? cursor->right : cursor->left;
+        } else if (result > 0) {
+            if (comparator == INFERIOR)
+                sendTableValue(cursor->node->root, socket);
+
             cursor = cursor->right;
-        else {
-            writeUByte(1, socket);
-            sendTableValue(cursor->node->root, socket);
-            cursor = cursor->left;
+        } else {
+            if (comparator == EQUAL)
+                sendTableValue(cursor->node->root, socket);
+
+            cursor = comparator == SUPERIOR ? cursor->right : cursor->left;
         }
     }
 
     writeUByte(0, socket);
 }
 
-void printTree(TreeNode *root) {
-    if (root != NULL) {
-        printTree(root->left);
-        if (root->node->type == STRING)
-            printf("[%u = %s]\n", root->node->comparable, root->node->value);
-        else
-            printf("%d ", root->node->value);
 
-        printTree(root->right);
-    }
-
-}
-
-
-TreeNode *insertTreeNode(BinaryTree * binaryTree, Node *node) {
+TreeNode *insertTreeNode(BinaryTree *binaryTree, Node *node) {
     TreeNode *root = binaryTree->root;
 
     if (root == NULL) {
@@ -96,7 +91,7 @@ TreeNode *insertTreeNode(BinaryTree * binaryTree, Node *node) {
     return root;
 }
 
-TreeNode *deleteTreeNode(BinaryTree * binaryTree, TreeNode * root, void *key) {
+TreeNode *deleteTreeNode(BinaryTree *binaryTree, TreeNode *root, void *key) {
     if (root == NULL)
         return NULL;
 

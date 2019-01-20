@@ -8,6 +8,9 @@
 #include <sys/param.h>
 #include <string.h>
 
+#define EQUAL 61
+#define INFERIOR 60
+#define SUPERIOR 62
 
 char compareChar(void *, void *);
 
@@ -28,6 +31,8 @@ char compareULong(void *, void *);
 char compareDatabase(void *, void *);
 
 char compareTable(void *, void *);
+
+char compareTableValue(void *, void *);
 
 char compareString(void *, void *);
 

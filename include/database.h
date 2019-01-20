@@ -51,7 +51,7 @@ void loadTable(Database *, char *);
 
 void loadValues(Database *);
 
-void insertNodes(char *, char *, TableValue *, int);
+void writeTableValue(TableValue *);
 
 Table *findTable(char *, char *);
 

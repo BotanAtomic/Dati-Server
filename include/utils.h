@@ -17,6 +17,7 @@
 #include "json-c/json.h"
 #include "container.h"
 #include "list.h"
+#include <sys/time.h>
 
 char *concatString(char *, char *);
 
@@ -45,5 +46,7 @@ unsigned long readIndex(char *);
 unsigned hash(const char *);
 
 char * removeAllSpaces(char *);
+
+long long currentTimestamp();
 
 #endif //DATI_UTILS_H
