@@ -6,15 +6,17 @@
 #define DATI_MESSAGE_HANDLER_H
 
 #include "server.h"
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <stdlib.h>
-#include <string.h>
-#include "stdio.h"
+
 #include "buffer.h"
 #include "shell.h"
 #include "error_code.h"
 #include "utils.h"
+#include "tree.h"
+#include "scheduler.h"
+#include "variable.h"
+#include "database.h"
+#include "comparator.h"
 
 void parse(unsigned char id, struct Session *);
 
@@ -39,5 +41,7 @@ void renameTable(Session *, __uint16_t);
 void insertValue(Session *, __uint16_t);
 
 void findValue(Session *, __uint16_t);
+
+void removeValue(Session *, __uint16_t);
 
 #endif //DATI_MESSAGE_HANDLER_H

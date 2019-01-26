@@ -11,7 +11,6 @@
 #define MAGENTA  "\x1B[35m"
 #define CYAN  "\x1B[36m"
 
-
 void println(const char *__restrict __format, ...);
 
 void print(const char *__restrict __format, ...);

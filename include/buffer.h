@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "scheduler.h"
 #include "database.h"
 
 static const unsigned char PRIMITIVE_SIZE[] = {1, 1, 2, 2, 4, 4, 8, 8, 4, 0, 0};
@@ -54,7 +55,9 @@ int64_t getLong(const char *);
 
 __uint64_t getULong(const char *);
 
-void sendTableValue(TableValue *, int);
+void sendTableValue(TableValue *, int *);
+
+void removeTableValue(TableValue *, int *);
 
 void sendNode(Node *, int);
 

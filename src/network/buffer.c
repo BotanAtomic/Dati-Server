@@ -153,13 +153,19 @@ int64_t getLong(const char *buffer) {
     return value;
 }
 
-void sendTableValue(TableValue *tableValue, int socket) {
-    writeUByte(1, socket);
-    writeUShort(tableValue->nodes->length, socket);
-    writeULong(tableValue->_uuid, socket);
+void sendTableValue(TableValue *tableValue, int * socket) {
+    writeUByte(1, *socket);
+    writeUShort(tableValue->nodes->length, *socket);
+    writeULong(tableValue->_uuid, *socket);
 
     for (Element *element = tableValue->nodes->element; element != NULL; element = element->next)
-        sendNode(element->value, socket);
+        sendNode(element->value, *socket);
+}
+
+void removeTableValue(TableValue *tableValue, int * count) {
+    *count = *count + 1;
+    tableValue->removed = 1;
+    insertFuture(tableValue);
 }
 
 void sendNode(Node *value, int socket) {

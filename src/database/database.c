@@ -3,18 +3,18 @@
 //
 
 #include <malloc.h>
-#include <error_code.h>
-#include <comparator.h>
-#include <converter.h>
+#include "database.h"
 
-
+#include "error_code.h"
+#include "comparator.h"
+#include "converter.h"
 #include "tree.h"
 #include "byte_buffer.h"
-#include "database.h"
 #include "utils.h"
 #include "server.h"
 #include "shell.h"
 #include "buffer.h"
+
 
 #define INT2VOIDP(i) (void*)(uintptr_t)(i)
 
@@ -75,6 +75,7 @@ void loadTable(Database *database, char *tableName) {
 
 void loadValues(Database *database) {
     for (Element *element = database->tables->element; element != NULL; element = element->next) {
+        long long start = currentTimestamp();
         Table *table = element->value;
 
         char *path = buildPath(dataPath, database->name, table->name, 0);
@@ -164,7 +165,10 @@ void loadValues(Database *database) {
             loaded++;
             listInsert(table->values, tableValue);
         }
-        printf("[ %lu values / index:%lu ]\n", loaded, table->index);
+        long long end = currentTimestamp();
+
+        print("[ %lu values / index:%lu]", loaded, table->index);
+        println(" - %lums", (unsigned long) (end - start));
         resetColor();
     }
 
@@ -182,11 +186,21 @@ Table *findTable(char *databaseName, char *tableName) {
 
 void writeTableValue(TableValue *tableValue) {
     Table *table = tableValue->table;
+
+    if (!table)
+        return;
+
     char *path = buildPath(dataPath, table->database->name, table->name, 0);
 
     char fileName[sizeof(unsigned long) * 8 + 5]; //5 = 1 + 4(.bin)
 
     sprintf(fileName, "%lu.bin", tableValue->_uuid);
+
+    if (tableValue->removed) {
+        remove(concatString(path, fileName));
+        free(path);
+        return;
+    }
 
     FILE *filePointer;
     filePointer = fopen(concatString(path, fileName), "wb");
@@ -223,6 +237,7 @@ TableValue *createTableValue() {
     TableValue *tableValue = malloc(sizeof(TableValue));
     tableValue->nodes = createList();
     tableValue->_uuid = 0;
+    tableValue->removed = 0;
     return tableValue;
 }
 

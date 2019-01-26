@@ -5,7 +5,6 @@
 #include <malloc.h>
 #include "comparator.h"
 
-#include "variable.h"
 #include "utils.h"
 #include "tree.h"
 #include "buffer.h"
@@ -26,9 +25,9 @@ TreeNode *createTreeNode(Node *node) {
     return temp;
 }
 
-void searchNode(BinaryTree *binaryTree, void *key, char comparator, int socket) {
+void searchNode(BinaryTree *binaryTree, void *key, char comparator, void (*callback)(TableValue *, int *), int *args) {
     if (binaryTree->root == NULL) {
-        writeUByte(0, socket);
+        writeUByte(0, *args);
         return;
     }
 
@@ -37,24 +36,23 @@ void searchNode(BinaryTree *binaryTree, void *key, char comparator, int socket) 
     while (cursor != NULL) {
         result = binaryTree->comparator(key, cursor->node->comparable);
         if (result < 0) {
-            if (comparator == SUPERIOR)
-                sendTableValue(cursor->node->root, socket);
+            if (comparator == SUPERIOR && !cursor->node->root->removed)
+                callback(cursor->node->root, args);
 
             cursor = comparator == SUPERIOR ? cursor->right : cursor->left;
         } else if (result > 0) {
-            if (comparator == INFERIOR)
-                sendTableValue(cursor->node->root, socket);
+            if (comparator == INFERIOR && !cursor->node->root->removed)
+                callback(cursor->node->root, args);
 
             cursor = cursor->right;
         } else {
-            if (comparator == EQUAL)
-                sendTableValue(cursor->node->root, socket);
+            if (comparator == EQUAL && !cursor->node->root->removed)
+                callback(cursor->node->root, args);
 
             cursor = comparator == SUPERIOR ? cursor->right : cursor->left;
         }
     }
 
-    writeUByte(0, socket);
 }
 
 
@@ -98,11 +96,11 @@ TreeNode *deleteTreeNode(BinaryTree *binaryTree, TreeNode *root, void *key) {
     TreeNode *cursor;
     int r = binaryTree->comparator(key, root->node->comparable);
 
-    if (r < 0)
+    if (r < 0) {
         root->left = deleteTreeNode(binaryTree, root->left, key);
-    else if (r > 0)
+    } else if (r > 0) {
         root->right = deleteTreeNode(binaryTree, root->right, key);
-    else {
+    } else {
         if (root->left == NULL) {
             cursor = root->right;
             free(root);
@@ -121,9 +119,11 @@ TreeNode *deleteTreeNode(BinaryTree *binaryTree, TreeNode *root, void *key) {
             }
             root->node = cursor->node;
             if (parent != NULL)
-                parent->left = deleteTreeNode(binaryTree, parent->left, parent->left->node->comparable);
+                parent->left = deleteTreeNode(binaryTree, parent->left,
+                                              parent->left->node->comparable);
             else
-                root->right = deleteTreeNode(binaryTree, root->right, root->right->node->comparable);
+                root->right = deleteTreeNode(binaryTree, root->right,
+                                             root->right->node->comparable);
         }
 
     }

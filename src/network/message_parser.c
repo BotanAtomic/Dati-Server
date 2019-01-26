@@ -2,25 +2,21 @@
 // Created by Botan on 03/11/18.
 //
 
-#include <message_parser.h>
-#include <tree.h>
-
-#include "scheduler.h"
-#include "variable.h"
 #include "message_parser.h"
-#include "database.h"
-#include "comparator.h"
+
 
 #define SUCCESS 1
 #define FAILED 0
 
 #define INT2VOIDP(i) (void*)(uintptr_t)(i)
 
+static pthread_mutex_t writeMutex = PTHREAD_MUTEX_INITIALIZER;
+
 void (*messages[])(Session *session, __uint16_t size) ={
         login,
         getDatabases, createDatabase, removeDatabase, renameDatabase,
         getTables, createTable, removeTable, renameTable,
-        insertValue, findValue
+        insertValue, findValue, removeValue
 };
 
 void parse(unsigned char id, Session *session) {
@@ -28,7 +24,7 @@ void parse(unsigned char id, Session *session) {
 
     println("Reception of [message_id : %d / size : %d]", id, size);
 
-    if ((session->connected || id == 0) && id >= 0 && id < 11)
+    if ((session->connected || id == 0) && id >= 0 && id < 12)
         messages[id](session, size);
 
 }
@@ -330,6 +326,8 @@ void insertValue(Session *session, __uint16_t size) {
         invalid = 1;
     }
 
+    pthread_mutex_lock(&writeMutex);
+
     uint16_t nodesLength = readUShort(session->socket);
 
     TableValue *tableValue = createTableValue();
@@ -398,6 +396,7 @@ void insertValue(Session *session, __uint16_t size) {
     if (!invalid) {
         listInsert(tableValue->nodes, idNode);
         listInsert(table->values, tableValue);
+        insertFuture(tableValue);
     }
 
     if (!async) {
@@ -405,7 +404,7 @@ void insertValue(Session *session, __uint16_t size) {
         writeULong(tableValue->_uuid, session->socket);
     }
 
-    insertFuture(tableValue);
+    pthread_mutex_unlock(&writeMutex);
 }
 
 void findValue(Session *session, __uint16_t size) {
@@ -455,12 +454,63 @@ void findValue(Session *session, __uint16_t size) {
     if ((binaryTree != NULL && comparator > 0) || (all && table->values->length > 0)) {
         if (all) {
             for (Element *element = table->values->element; element != NULL; element = element->next) {
-                sendTableValue(element->value, session->socket);
+                sendTableValue(element->value, &session->socket);
             }
             writeUByte(0, session->socket);
-        } else
-            searchNode(binaryTree, binaryTree->converter(value), comparator, session->socket);
+        } else {
+            searchNode(binaryTree, binaryTree->converter(value), comparator, sendTableValue, &session->socket);
+            writeUByte(0, session->socket);
+        }
     } else {
         writeUByte(0, session->socket);
+    }
+}
+
+void removeValue(Session *session, uint16_t size) {
+    char *databaseName = readString(size, session->socket);
+    char *tableName = readString(readUShort(session->socket), session->socket);
+    char *filter = removeAllSpaces(readString(readUByte(session->socket), session->socket));
+
+    char comparator = 0;
+    char key[256];
+    char value[256];
+
+    char keyLength = 0;
+    char valueLength = 0;
+
+    for (int i = 0; i < strlen(filter); i++) {
+        char c = filter[i];
+        if (c == '=' || c == '>' || c == '<') {
+            comparator = c;
+            key[i] = 0;
+        } else {
+            if (comparator > 0) {
+                value[i - keyLength - 1] = c;
+                valueLength++;
+            } else {
+                key[i] = c;
+                keyLength++;
+            }
+        }
+    }
+
+    value[valueLength] = 0;
+
+    Table *table = findTable(databaseName, tableName);
+
+    if (!table) {
+        writeULong(0, session->socket);
+        return;
+    }
+
+    List *binaryTreeList = table->binaryTreeList;
+    BinaryTree *binaryTree = listSearch(binaryTreeList, key);
+
+    if (binaryTree != NULL) {
+        int count = 0;
+        searchNode(binaryTree, binaryTree->converter(value), comparator, removeTableValue, &count);
+        writeULong((__uint64_t) count, session->socket);
+    } else {
+        writeULong(0, session->socket);
     }
 }

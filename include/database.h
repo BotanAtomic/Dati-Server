@@ -27,7 +27,8 @@ typedef struct Table {
 typedef struct TableValue {
     List *nodes;
     __uint64_t _uuid;
-    Table* table;
+    Table *table;
+    char removed;
 } TableValue;
 
 typedef struct Node {
@@ -55,6 +56,6 @@ void writeTableValue(TableValue *);
 
 Table *findTable(char *, char *);
 
-void registerNode(Node* node);
+void registerNode(Node *node);
 
 #endif //DATI_DATABASE_H

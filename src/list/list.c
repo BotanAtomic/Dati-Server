@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "list.h"
-#include "database.h"
 
 List *createList() {
     List *list = malloc(sizeof(List));

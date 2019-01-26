@@ -45,7 +45,7 @@ unsigned long readIndex(char *);
 
 unsigned hash(const char *);
 
-char * removeAllSpaces(char *);
+char *removeAllSpaces(char *);
 
 long long currentTimestamp();
 

@@ -2,9 +2,6 @@
 // Created by Botan on 18/11/18.
 //
 
-#include <stdio.h>
-#include "database.h"
-#include "tree.h"
 #include "comparator.h"
 
 char compareChar(void *first, void *second) {

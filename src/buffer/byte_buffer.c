@@ -1,8 +1,6 @@
 //
 // Created by Botan on 08/12/18.
 //
-#include <byte_buffer.h>
-
 #include "byte_buffer.h"
 
 ByteBuffer *newByteBuffer(char *data, unsigned long length) {

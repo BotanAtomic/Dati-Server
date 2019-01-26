@@ -7,13 +7,11 @@
 
 #define MAX_BUFFER_SIZE 100000
 
-#include <zconf.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "database.h"
 #include "utils.h"
 #include "server.h"
-
-
 
 TableValue ** bufferActions;
 unsigned long bufferIndex;
@@ -21,8 +19,6 @@ unsigned long bufferIndex;
 /**
  * Delay in seconds
  */
-
-
 void startTimer(unsigned short);
 
 void insertFuture(TableValue * tableValue);

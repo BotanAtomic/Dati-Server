@@ -4,5 +4,5 @@
   "max-connection": 10,
   "username": "root",
   "password" : "password",
-  "flush-time": 120
+  "flush-time": 20
 }

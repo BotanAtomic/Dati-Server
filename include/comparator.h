@@ -7,6 +7,8 @@
 
 #include <sys/param.h>
 #include <string.h>
+#include "database.h"
+#include "tree.h"
 
 #define EQUAL 61
 #define INFERIOR 60

@@ -2,10 +2,8 @@
 // Created by Botan on 16/12/18.
 //
 
-#include <stdlib.h>
 
 #include "converter.h"
-#include "utils.h"
 
 void *convertChar(char * string) {
     char c = (char) atoi(string);

@@ -7,6 +7,7 @@
 
 #include <sys/param.h>
 #include <string.h>
+#include "utils.h"
 
 
 void *convertChar(char *);
